@@ -38,7 +38,7 @@ gcloud functions deploy "${FUNCTION_NAME}" \
   --runtime="${RUNTIME}" \
   --entry-point="syncGpxFiles" \
   --trigger-http \
-  --allow-unauthenticated=false \
+  --no-allow-unauthenticated \
   --memory="${MEMORY}" \
   --timeout="${TIMEOUT}" \
   --min-instances="${MIN_INSTANCES}" \
