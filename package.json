@@ -4,7 +4,7 @@
   "description": "Kektura GPX downloader — Cloud Run Function (2nd Gen)",
   "main": "dist/index.js",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",

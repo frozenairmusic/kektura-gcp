@@ -18,7 +18,7 @@ FUNCTION_NAME="sync-gpx-files"
 GCS_BUCKET="${GCS_BUCKET_NAME:?GCS_BUCKET_NAME environment variable must be set}"
 
 # ── Optional configuration ────────────────────────────────────────────────────
-RUNTIME="nodejs20"
+RUNTIME="nodejs22"
 MEMORY="256Mi"
 TIMEOUT="300s"          # 5 minutes — gracious upper bound for scraping + uploads
 MIN_INSTANCES="0"
