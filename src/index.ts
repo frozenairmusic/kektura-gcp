@@ -72,18 +72,23 @@ export async function syncGpxFiles(req: ff.Request, res: ff.Response): Promise<v
         continue;
       }
 
-      for (const subUrl of subpageUrls) {
-        try {
-          const subLinks = await extractGpxLinks(subUrl);
-          links.push(...subLinks);
-        } catch (err: unknown) {
-          const message = err instanceof Error ? err.message : String(err);
-          console.error(`  Failed to scrape subpage ${subUrl}: ${message}`);
-          results.errors.push({
-            source: subUrl,
-            error: message 
-          });
-        }
+      const SUBPAGE_CONCURRENCY = 5;
+      for (let i = 0; i < subpageUrls.length; i += SUBPAGE_CONCURRENCY) {
+        const chunk = subpageUrls.slice(i, i + SUBPAGE_CONCURRENCY);
+        const settled = await Promise.allSettled(chunk.map(url => extractGpxLinks(url)));
+        settled.forEach((result, idx) => {
+          const subUrl = chunk[idx];
+          if (result.status === 'fulfilled') {
+            links.push(...result.value);
+          } else {
+            const message = result.reason instanceof Error ? result.reason.message : String(result.reason);
+            console.error(`  Failed to scrape subpage ${subUrl}: ${message}`);
+            results.errors.push({
+              source: subUrl,
+              error: message,
+            });
+          }
+        });
       }
     } else {
       // ── Direct scrape ─────────────────────────────────────────────────────
@@ -106,37 +111,71 @@ export async function syncGpxFiles(req: ff.Request, res: ff.Response): Promise<v
       metadata[target.trail] = {};
     }
 
+    const toDownload: Array<{
+      trail: string;
+      segment: string;
+      date: string;
+      filename: string;
+      isNew: boolean;
+    }> = [];
+
     for (const link of links) {
       const {
-        trail, segment, date, filename 
+        trail,
+        segment,
+        date,
+        filename,
       } = link;
       const existing: ISegmentMeta | undefined = metadata[trail]?.[segment];
-
-      const isNew   = existing === undefined;
+      const isNew = existing === undefined;
       const isNewer = existing !== undefined && existing.last_updated < date;
 
       if (isNew || isNewer) {
-        const label = isNew ? 'NEW' : `UPDATED (${existing!.last_updated} → ${date})`;
+        toDownload.push({
+          trail,
+          segment,
+          date,
+          filename,
+          isNew,
+        });
+      } else {
+        results.unchanged.push(`${trail}_${segment}`);
+      }
+    }
+
+    console.log(`  ${toDownload.length} file(s) to download.`);
+
+    const DOWNLOAD_CONCURRENCY = 3;
+    for (let i = 0; i < toDownload.length; i += DOWNLOAD_CONCURRENCY) {
+      const chunk = toDownload.slice(i, i + DOWNLOAD_CONCURRENCY);
+      await Promise.all(chunk.map(async ({
+        trail,
+        segment,
+        date,
+        filename,
+        isNew,
+      }) => {
+        const label = isNew ? 'NEW' : 'UPDATED';
         console.log(`  [${label}] ${filename}`);
         try {
           await downloadGpxFile(trail, filename, adapter);
           if (!metadata[trail]) metadata[trail] = {};
           metadata[trail][segment] = {
             last_updated: date,
-            filename 
+            filename,
           };
-          (isNew ? results.added : results.updated).push(`${trail}_${segment}`);
+
+          return (isNew ? results.added : results.updated).push(`${trail}_${segment}`);
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err);
           console.error(`  Failed to fetch/store ${filename}: ${message}`);
-          results.errors.push({
+
+          return results.errors.push({
             filename,
-            error: message 
+            error: message,
           });
         }
-      } else {
-        results.unchanged.push(`${trail}_${segment}`);
-      }
+      }));
     }
   }
 

@@ -15,7 +15,7 @@ export async function fetchSubpageUrls(
   subpagePattern: RegExp,
 ): Promise<string[]> {
   const response = await axios.get<string>(pageUrl, {
-    timeout: 20_000,
+    timeout: 45_000,
     headers: { 'User-Agent': 'KekturaGpxScraper/1.0' },
   });
 
@@ -49,7 +49,7 @@ export async function fetchSubpageUrls(
  */
 export async function extractGpxLinks(pageUrl: string): Promise<IGpxLink[]> {
   const response = await axios.get<string>(pageUrl, {
-    timeout: 20_000,
+    timeout: 45_000,
     headers: { 'User-Agent': 'KekturaGpxScraper/1.0' },
   });
 
