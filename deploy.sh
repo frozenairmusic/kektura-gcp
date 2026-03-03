@@ -14,7 +14,7 @@ set -euo pipefail
 # ── Required configuration ────────────────────────────────────────────────────
 PROJECT_ID="${GCP_PROJECT_ID:-$(gcloud config get-value project)}"
 REGION="${GCP_REGION:-europe-central2}"
-FUNCTION_NAME="scrape-kektura"
+FUNCTION_NAME="sync-gpx-files"
 GCS_BUCKET="${GCS_BUCKET_NAME:?GCS_BUCKET_NAME environment variable must be set}"
 
 # ── Optional configuration ────────────────────────────────────────────────────

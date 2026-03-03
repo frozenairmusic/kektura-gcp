@@ -1,7 +1,7 @@
 {
   "name": "kektura-gcp",
   "version": "1.0.0",
-  "description": "Kektura GPX scraper — Cloud Run Function (2nd Gen)",
+  "description": "Kektura GPX downloader — Cloud Run Function (2nd Gen)",
   "main": "dist/index.js",
   "engines": {
     "node": ">=20"
