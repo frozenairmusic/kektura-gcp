@@ -44,6 +44,7 @@ gcloud functions deploy "${FUNCTION_NAME}" \
   --min-instances="${MIN_INSTANCES}" \
   --max-instances="${MAX_INSTANCES}" \
   --set-env-vars="GCS_BUCKET_NAME=${GCS_BUCKET}" \
+  --set-build-env-vars="GOOGLE_NODE_RUN_SCRIPTS=" \
   --source=.
 
 echo ""
