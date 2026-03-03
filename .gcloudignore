@@ -1,0 +1,9 @@
+node_modules/
+src/
+test/
+tsconfig*.json
+.env
+.git/
+.gitignore
+deploy.sh
+README.md
