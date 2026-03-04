@@ -14,13 +14,15 @@ const MockedStorage = Storage as jest.MockedClass<typeof Storage>;
 
 const gcsMock = {
   save:     jest.fn<Promise<void>, []>().mockResolvedValue(undefined),
+  delete:   jest.fn<Promise<void>, []>().mockResolvedValue(undefined),
   download: jest.fn(),
   file:     jest.fn(),
   bucket:   jest.fn(),
 };
 gcsMock.file.mockReturnValue({
-  save: gcsMock.save,
-  download: gcsMock.download 
+  save:     gcsMock.save,
+  delete:   gcsMock.delete,
+  download: gcsMock.download,
 });
 gcsMock.bucket.mockReturnValue({ file: gcsMock.file });
 MockedStorage.mockImplementation(() => ({ bucket: gcsMock.bucket }) as unknown as Storage);
@@ -28,11 +30,13 @@ MockedStorage.mockImplementation(() => ({ bucket: gcsMock.bucket }) as unknown a
 beforeEach(() => {
   jest.clearAllMocks();
   gcsMock.file.mockReturnValue({
-    save: gcsMock.save,
-    download: gcsMock.download 
+    save:     gcsMock.save,
+    delete:   gcsMock.delete,
+    download: gcsMock.download,
   });
   gcsMock.bucket.mockReturnValue({ file: gcsMock.file });
   gcsMock.save.mockResolvedValue(undefined);
+  gcsMock.delete.mockResolvedValue(undefined);
   delete process.env.GCS_BUCKET_NAME;
   delete process.env.LOCAL_OUTPUT_DIR;
 });
@@ -96,6 +100,18 @@ describe('GcsStorageAdapter', () => {
     gcsMock.save.mockRejectedValueOnce(new Error('Upload failed'));
     await expect(adapter.writeGpx('okt', 'okt_01_20251107.gpx', Buffer.from(''))).rejects.toThrow('Upload failed');
   });
+
+  test('checkWritable saves and deletes a probe file', async () => {
+    await adapter.checkWritable();
+    expect(gcsMock.file).toHaveBeenCalledWith('.write-probe');
+    expect(gcsMock.save).toHaveBeenCalledWith('', expect.objectContaining({ contentType: 'text/plain' }));
+    expect(gcsMock.delete).toHaveBeenCalled();
+  });
+
+  test('checkWritable propagates save errors', async () => {
+    gcsMock.save.mockRejectedValueOnce(new Error('Permission denied'));
+    await expect(adapter.checkWritable()).rejects.toThrow('Permission denied');
+  });
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -152,6 +168,11 @@ describe('LocalStorageAdapter', () => {
     const newDir = path.join(tmpDir, 'nested', 'output');
     new LocalStorageAdapter(newDir);
     expect(fs.existsSync(newDir)).toBe(true);
+  });
+
+  test('checkWritable succeeds and leaves no .write-probe file behind', async () => {
+    await adapter.checkWritable();
+    expect(fs.existsSync(path.join(tmpDir, '.write-probe'))).toBe(false);
   });
 });
 

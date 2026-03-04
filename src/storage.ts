@@ -12,6 +12,8 @@ export interface IStorageAdapter {
   writeMetadata(metadata: Metadata): Promise<void>;
   /** Store a GPX file at path gpx/<trail>/<filename>. */
   writeGpx(trail: string, filename: string, data: Buffer): Promise<void>;
+  /** Probe write access — throws if the storage backend is not writable. */
+  checkWritable(): Promise<void>;
 }
 
 // ─── GCS adapter ─────────────────────────────────────────────────────────────
@@ -20,6 +22,15 @@ export class GcsStorageAdapter implements IStorageAdapter {
   private storage = new Storage();
 
   constructor(private readonly bucketName: string) { }
+
+  async checkWritable(): Promise<void> {
+    const probe = this.storage.bucket(this.bucketName).file('.write-probe');
+    await probe.save('', {
+      contentType: 'text/plain',
+      resumable: false,
+    });
+    await probe.delete();
+  }
 
   async readMetadata(): Promise<Metadata> {
     const file = this.storage.bucket(this.bucketName).file('metadata.json');
@@ -66,6 +77,13 @@ export class GcsStorageAdapter implements IStorageAdapter {
 export class LocalStorageAdapter implements IStorageAdapter {
   constructor(private readonly outputDir: string) {
     fs.mkdirSync(outputDir, { recursive: true });
+  }
+
+  async checkWritable(): Promise<void> {
+    fs.mkdirSync(this.outputDir, { recursive: true });
+    const probe = path.join(this.outputDir, '.write-probe');
+    fs.writeFileSync(probe, '');
+    fs.unlinkSync(probe);
   }
 
   async readMetadata(): Promise<Metadata> {

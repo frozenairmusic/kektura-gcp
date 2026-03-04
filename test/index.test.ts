@@ -20,13 +20,15 @@ const MockedStorage = Storage as jest.MockedClass<typeof Storage>;
 
 const gcsMock = {
   save:     jest.fn<Promise<void>, []>().mockResolvedValue(undefined),
+  delete:   jest.fn<Promise<void>, []>().mockResolvedValue(undefined),
   download: jest.fn(),
   file:     jest.fn(),
   bucket:   jest.fn(),
 };
 gcsMock.file.mockReturnValue({
-  save: gcsMock.save,
-  download: gcsMock.download 
+  save:     gcsMock.save,
+  delete:   gcsMock.delete,
+  download: gcsMock.download,
 });
 gcsMock.bucket.mockReturnValue({ file: gcsMock.file });
 MockedStorage.mockImplementation(() => ({ bucket: gcsMock.bucket }) as unknown as Storage);
@@ -36,11 +38,13 @@ const axiosMock = new MockAdapter(axios);
 beforeEach(() => {
   jest.clearAllMocks();
   gcsMock.file.mockReturnValue({
-    save: gcsMock.save,
-    download: gcsMock.download 
+    save:     gcsMock.save,
+    delete:   gcsMock.delete,
+    download: gcsMock.download,
   });
   gcsMock.bucket.mockReturnValue({ file: gcsMock.file });
   gcsMock.save.mockResolvedValue(undefined);
+  gcsMock.delete.mockResolvedValue(undefined);
   axiosMock.reset();
   delete process.env.GCS_BUCKET_NAME;
   delete process.env.LOCAL_OUTPUT_DIR;
@@ -106,6 +110,18 @@ describe('syncGpxFiles handler', () => {
     await syncGpxFiles(mockReq() as unknown as ff.Request, res as unknown as ff.Response);
     expect(res._status).toBe(500);
     expect(res._body).toMatchObject({ success: false });
+  });
+
+  test('returns 500 and aborts when storage write check fails', async () => {
+    delete process.env.LOCAL_OUTPUT_DIR;
+    process.env.GCS_BUCKET_NAME = 'test-bucket';
+    gcsMock.save.mockRejectedValueOnce(new Error('Permission denied'));
+    const res = mockRes();
+    await syncGpxFiles(mockReq() as unknown as ff.Request, res as unknown as ff.Response);
+    expect(res._status).toBe(500);
+    expect(res._body).toMatchObject({ success: false, error: expect.stringContaining('write check') });
+    // No HTTP listing requests should have been made
+    expect(axiosMock.history.get.length).toBe(0);
   });
 
   test('returns non-500 when LOCAL_OUTPUT_DIR is set', async () => {

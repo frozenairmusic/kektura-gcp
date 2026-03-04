@@ -182,6 +182,7 @@ describe('downloadGpxFile', () => {
 
   beforeEach(() => {
     mockAdapter = {
+      checkWritable: jest.fn<Promise<void>, []>().mockResolvedValue(undefined),
       readMetadata:  jest.fn(),
       writeMetadata: jest.fn<Promise<void>, [Metadata]>().mockResolvedValue(undefined),
       writeGpx:      jest.fn<Promise<void>, [string, string, Buffer]>().mockResolvedValue(undefined),
