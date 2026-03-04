@@ -13,7 +13,8 @@
     "test": "jest --runInBand --forceExit",
     "test:coverage": "jest --runInBand --forceExit --coverage",
     "lint": "eslint src/**/*.ts test/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts test/**/*.ts --fix"
+    "lint:fix": "eslint src/**/*.ts test/**/*.ts --fix",
+    "prepare": "husky"
   },
   "jest": {
     "preset": "ts-jest",
@@ -37,6 +38,7 @@
     "axios-mock-adapter": "^2.1.0",
     "eslint": "^10.0.2",
     "globals": "^17.4.0",
+    "husky": "^9.1.7",
     "jest": "^30.2.0",
     "ts-jest": "^29.4.6",
     "typescript": "^5.9.3"

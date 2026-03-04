@@ -21,7 +21,20 @@ export async function syncGpxFiles(req: ff.Request, res: ff.Response): Promise<v
     console.error(message);
     res.status(500).json({
       success: false,
-      error: message 
+      error: message,
+    });
+
+    return;
+  }
+
+  try {
+    await adapter.checkWritable();
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`Storage is not writable — aborting: ${message}`);
+    res.status(500).json({
+      success: false,
+      error: `Storage write check failed: ${message}`,
     });
 
     return;
