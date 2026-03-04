@@ -119,7 +119,10 @@ describe('syncGpxFiles handler', () => {
     const res = mockRes();
     await syncGpxFiles(mockReq() as unknown as ff.Request, res as unknown as ff.Response);
     expect(res._status).toBe(500);
-    expect(res._body).toMatchObject({ success: false, error: expect.stringContaining('write check') });
+    expect(res._body).toMatchObject({
+      success: false,
+      error: expect.stringContaining('write check'),
+    });
     // No HTTP listing requests should have been made
     expect(axiosMock.history.get.length).toBe(0);
   });
