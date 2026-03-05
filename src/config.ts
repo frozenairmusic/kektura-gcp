@@ -9,29 +9,61 @@ import type { IScrapeTarget } from './types';
 export const GPX_BASE_URL = process.env.GPX_BASE_URL ??
   'https://turistaterkepek.hu/kekturahu/gpx/nagyszakasz';
 
+// ─── Trail segment counts ─────────────────────────────────────────────────────
+
+/**
+ * Known number of segments for each trail.
+ * Update these values if new segments are added to a trail.
+ */
+export const TRAIL_SEGMENT_COUNTS = {
+  okt: 27,
+  ak: 13,
+  rpddk: 11,
+} as const;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Generates the ordered list of subpage URLs for a given trail.
+ *
+ * URL pattern: `https://www.kektura.hu/<trail>-szakasz/<trail>-<nn>`
+ * where `<nn>` is a zero-padded segment number starting at `01`.
+ */
+function segmentUrls(trail: string, count: number,
+): string[] {
+  return Array.from({
+    length: count,
+  }, (_, i,
+  ) => {
+    const n = String(i + 1).padStart(2, '0',
+    );
+
+    return `https://www.kektura.hu/${trail}-szakasz/${trail}-${n}`;
+  });
+}
+
 // ─── Scrape targets ───────────────────────────────────────────────────────────
 
 /**
- * Ordered list of trail listing pages to scrape on each function invocation.
- *
- * When `subpagePattern` is set the listing page is crawled first; each matching
- * subpage is then scraped for GPX links (two-step flow).
+ * Ordered list of trail segment pages to scrape on each function invocation.
+ * Subpage URLs are pre-computed from {@link TRAIL_SEGMENT_COUNTS} — no
+ * listing-page fetch is required at runtime.
  */
 export const SCRAPE_TARGETS: IScrapeTarget[] = [
   {
     trail: 'okt',
-    url: 'https://kektura.hu/okt-szakaszok',
-    subpagePattern: /\/okt-szakasz\//i,
+    subpageUrls: segmentUrls('okt', TRAIL_SEGMENT_COUNTS.okt,
+    ),
   },
   {
     trail: 'ak',
-    url: 'https://kektura.hu/ak-szakaszok',
-    subpagePattern: /\/ak-szakasz\//i,
+    subpageUrls: segmentUrls('ak', TRAIL_SEGMENT_COUNTS.ak,
+    ),
   },
   {
     trail: 'rpddk',
-    url: 'https://kektura.hu/rpddk-szakaszok',
-    subpagePattern: /\/rpddk-szakasz\//i,
+    subpageUrls: segmentUrls('rpddk', TRAIL_SEGMENT_COUNTS.rpddk,
+    ),
   },
 ];
 
@@ -55,7 +87,7 @@ export const GPX_FILENAME_REGEX = /\b(okt|ak|rpddk)_(\d{2})_(\d{8})\.gpx\b/i;
 // ─── Concurrency limits ───────────────────────────────────────────────────────
 
 /** Maximum number of subpages fetched in parallel within a single trail. */
-export const SUBPAGE_CONCURRENCY = 5;
+export const SUBPAGE_CONCURRENCY = 7;
 
 /** Maximum number of GPX files downloaded and stored in parallel within a single trail. */
-export const DOWNLOAD_CONCURRENCY = 3;
+export const DOWNLOAD_CONCURRENCY = 7;

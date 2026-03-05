@@ -33,13 +33,11 @@ export interface IGpxLink {
 export interface IScrapeTarget {
   /** Trail identifier used as the top-level key in `metadata.json`, e.g. `"okt"`. */
   trail: string;
-  /** URL of the listing page (or a direct page when `subpagePattern` is omitted). */
-  url: string;
   /**
-   * When present the listing page is crawled first; every `<a href>` matching
-   * this pattern is treated as a subpage that is then scraped for GPX links.
+   * Ordered list of subpage URLs to fetch and scan for GPX links.
+   * Generated from {@link TRAIL_SEGMENT_COUNTS} in `config.ts`.
    */
-  subpagePattern?: RegExp;
+  subpageUrls: string[];
 }
 
 /** Describes a single error collected during a scrape or download run. */

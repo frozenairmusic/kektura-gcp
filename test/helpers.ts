@@ -27,9 +27,9 @@ export function makeTempDir(): string {
 
 export interface MockResponse {
   _status: number;
-  _body:   unknown;
-  status:  jest.MockedFunction<(code: number) => MockResponse>;
-  json:    jest.MockedFunction<(body: unknown) => MockResponse>;
+  _body: unknown;
+  status: jest.MockedFunction<(code: number) => MockResponse>;
+  json: jest.MockedFunction<(body: unknown) => MockResponse>;
 }
 
 export function mockReq(): Record<string, never> {
@@ -41,12 +41,16 @@ export function mockRes(): MockResponse {
     _status: 200,
     _body: null,
   } as MockResponse;
-  res.status = jest.fn().mockImplementation((code: number) => { res._status = code;
+  res.status = jest.fn().mockImplementation((code: number) => {
+    res._status = code;
 
-    return res; });
-  res.json   = jest.fn().mockImplementation((body: unknown) => { res._body  = body;
+    return res;
+  });
+  res.json   = jest.fn().mockImplementation((body: unknown) => {
+    res._body  = body;
 
-    return res; });
+    return res;
+  });
 
   return res;
 }

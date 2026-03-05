@@ -26,7 +26,9 @@ export interface IStorageAdapter {
 export class GcsStorageAdapter implements IStorageAdapter {
   private storage = new Storage();
 
-  constructor(private readonly bucketName: string) { }
+  constructor(private readonly bucketName: string) {
+
+  }
 
   /** Convenience accessor for the configured GCS bucket handle. */
   private get bucket() {
@@ -35,12 +37,10 @@ export class GcsStorageAdapter implements IStorageAdapter {
 
   async checkWritable(): Promise<void> {
     const probe = this.bucket.file('.write-probe');
-    await probe.save(
-      '', {
-        contentType: 'text/plain',
-        resumable: false,
-      },
-    );
+    await probe.save('', {
+      contentType: 'text/plain',
+      resumable: false,
+    });
     await probe.delete();
   }
 
@@ -63,29 +63,23 @@ export class GcsStorageAdapter implements IStorageAdapter {
   async writeMetadata(metadata: Metadata): Promise<void> {
     await this.bucket
       .file('metadata.json')
-      .save(
-        JSON.stringify(
-          metadata, null, 2,
-        ), {
-          contentType: 'application/json',
-          resumable: false,
-        },
-      );
+      .save(JSON.stringify(metadata, null, 2,
+      ), {
+        contentType: 'application/json',
+        resumable: false,
+      });
     console.log(`  Saved → gs://${this.bucketName}/metadata.json`);
   }
 
-  async writeGpx(
-    trail: string, filename: string, data: Buffer,
+  async writeGpx(trail: string, filename: string, data: Buffer,
   ): Promise<void> {
     const destPath = `gpx/${trail}/${filename}`;
     await this.bucket
       .file(destPath)
-      .save(
-        data, {
-          contentType: 'application/gpx+xml',
-          resumable: false,
-        },
-      );
+      .save(data, {
+        contentType: 'application/gpx+xml',
+        resumable: false,
+      });
     console.log(`  Stored → gs://${this.bucketName}/${destPath}`);
   }
 }
@@ -98,24 +92,21 @@ export class GcsStorageAdapter implements IStorageAdapter {
  */
 export class LocalStorageAdapter implements IStorageAdapter {
   constructor(private readonly outputDir: string) {
-    fs.mkdirSync(
-      outputDir, { recursive: true },
-    );
+    fs.mkdirSync(outputDir, {
+      recursive: true,
+    });
   }
 
   async checkWritable(): Promise<void> {
-    const probe = path.join(
-      this.outputDir, '.write-probe',
+    const probe = path.join(this.outputDir, '.write-probe',
     );
-    fs.writeFileSync(
-      probe, '',
+    fs.writeFileSync(probe, '',
     );
     fs.unlinkSync(probe);
   }
 
   async readMetadata(): Promise<Metadata> {
-    const filePath = path.join(
-      this.outputDir, 'metadata.json',
+    const filePath = path.join(this.outputDir, 'metadata.json',
     );
     if (!fs.existsSync(filePath)) {
       console.log(`metadata.json not found in ${this.outputDir} — starting fresh.`);
@@ -123,37 +114,29 @@ export class LocalStorageAdapter implements IStorageAdapter {
       return {};
     }
 
-    return JSON.parse(fs.readFileSync(
-      filePath, 'utf8',
+    return JSON.parse(fs.readFileSync(filePath, 'utf8',
     )) as Metadata;
   }
 
   async writeMetadata(metadata: Metadata): Promise<void> {
-    const filePath = path.join(
-      this.outputDir, 'metadata.json',
+    const filePath = path.join(this.outputDir, 'metadata.json',
     );
-    fs.writeFileSync(
-      filePath, JSON.stringify(
-        metadata, null, 2,
-      ), 'utf8',
+    fs.writeFileSync(filePath, JSON.stringify(metadata, null, 2,
+    ), 'utf8',
     );
     console.log(`  Saved → ${filePath}`);
   }
 
-  async writeGpx(
-    trail: string, filename: string, data: Buffer,
+  async writeGpx(trail: string, filename: string, data: Buffer,
   ): Promise<void> {
-    const dir = path.join(
-      this.outputDir, 'gpx', trail,
+    const dir = path.join(this.outputDir, 'gpx', trail,
     );
-    fs.mkdirSync(
-      dir, { recursive: true },
+    fs.mkdirSync(dir, {
+      recursive: true,
+    });
+    const filePath = path.join(dir, filename,
     );
-    const filePath = path.join(
-      dir, filename,
-    );
-    fs.writeFileSync(
-      filePath, data,
+    fs.writeFileSync(filePath, data,
     );
     console.log(`  Stored → ${filePath}`);
   }

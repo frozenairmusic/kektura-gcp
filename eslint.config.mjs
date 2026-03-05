@@ -2,6 +2,7 @@
 import js from '@eslint/js';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
+import stylistic from '@stylistic/eslint-plugin';
 import globals from 'globals';
 
 export default [
@@ -9,7 +10,7 @@ export default [
   {
     files: [
       'src/**/*.ts',
-      'test/**/*.ts'
+      'test/**/*.ts',
     ],
     languageOptions: {
       parser: tsParser,
@@ -23,204 +24,307 @@ export default [
     },
     plugins: {
       '@typescript-eslint': tsPlugin,
+      '@stylistic': stylistic,
     },
     rules: {
-      // ── Quotes ──────────────────────────────────────────────────────────
-      'quotes': [
+      // ── TypeScript (logic rules — not stylistic) ─────────────────────────
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+        },
+      ],
+      '@typescript-eslint/no-explicit-any': 'warn',
+      'no-unused-vars': 'off',
+
+      // ── Quotes ───────────────────────────────────────────────────────────
+      '@stylistic/quotes': [
         'error',
         'single',
         {
-          avoidEscape: true
-        }
+          avoidEscape: true,
+        },
       ],
 
-      // ── Indentation (2 spaces) ───────────────────────────────────────────
-      'indent': [
+      // ── Indentation (2 spaces, TypeScript-aware) ─────────────────────────
+      '@stylistic/indent': [
         'error',
         2,
         {
-          SwitchCase: 1
-        }
+          SwitchCase: 1,
+        },
       ],
 
-      // ── Newline at end of file ───────────────────────────────────────────
-      'eol-last': [
+      // ── Newline at end of file ────────────────────────────────────────────
+      '@stylistic/eol-last': [
         'error',
-        'always'
+        'always',
       ],
 
-      // ── Line endings (LF only) ───────────────────────────────────────────
-      'linebreak-style': [
+      // ── Line endings (LF only) ────────────────────────────────────────────
+      '@stylistic/linebreak-style': [
         'error',
-        'unix'
+        'unix',
       ],
 
-      // ── Array formatting ─────────────────────────────────────────────────
-      // Break array brackets when 2+ elements are present
-      'array-bracket-newline': [
+      // ── Semicolons ────────────────────────────────────────────────────────
+      '@stylistic/semi': [
+        'error',
+        'always',
+      ],
+
+      // ── Trailing commas ───────────────────────────────────────────────────
+      '@stylistic/comma-dangle': [
+        'error',
+        'always-multiline',
+      ],
+
+      // ── Spacing ───────────────────────────────────────────────────────────
+      '@stylistic/object-curly-spacing': [
+        'error',
+        'always',
+      ],
+      '@stylistic/array-bracket-spacing': [
+        'error',
+        'never',
+      ],
+      '@stylistic/space-in-parens': [
+        'error',
+        'never',
+      ],
+      '@stylistic/comma-spacing': [
         'error',
         {
-          minItems: 2
-        }
+          before: false,
+          after: true,
+        },
       ],
-      // Each element on its own line when the array is broken
-      'array-element-newline': [
+      '@stylistic/key-spacing': [
         'error',
         {
-          minItems: 2
-        }
+          beforeColon: false,
+          afterColon: true,
+        },
       ],
-
-      // ── Function call / definition formatting ────────────────────────────
-      // Break parens when 2+ arguments are present (mirrors array-bracket-newline)
-      'function-paren-newline': [
+      '@stylistic/space-before-blocks': [
+        'error',
+        'always',
+      ],
+      '@stylistic/keyword-spacing': [
         'error',
         {
-          minItems: 2
-        }
+          before: true,
+          after: true,
+        },
+      ],
+      '@stylistic/space-infix-ops': 'error',
+      '@stylistic/no-trailing-spaces': 'error',
+      '@stylistic/no-multiple-empty-lines': [
+        'error',
+        {
+          max: 1,
+          maxEOF: 0,
+        },
+      ],
+      // Require newlines inside every block body (functions, if, for, try, …)
+      '@stylistic/curly-newline': [
+        'error',
+        'always',
       ],
 
-      // ── Object formatting ────────────────────────────────────────────────
-      // Break object expressions/patterns with 2+ properties across lines
-      'object-curly-newline': [
-        'error', {
+      // ── Array formatting ──────────────────────────────────────────────────
+      '@stylistic/array-bracket-newline': [
+        'error',
+        {
+          minItems: 2,
+        },
+      ],
+      '@stylistic/array-element-newline': [
+        'error',
+        {
+          minItems: 2,
+        },
+      ],
+
+      // ── Object formatting ─────────────────────────────────────────────────
+      '@stylistic/object-curly-newline': [
+        'error',
+        {
           ObjectExpression: {
-            minProperties: 2,
-            consistent: true
+            minProperties: 1,
           },
           ObjectPattern: {
-            minProperties: 2,
-            consistent: true
+            minProperties: 1,
           },
-          // Keep import/export braces on one line unless they get very wide
           ImportDeclaration: {
             minProperties: 5,
-            consistent: true
+            consistent: true,
           },
           ExportDeclaration: {
             minProperties: 3,
-            consistent: true
+            consistent: true,
           },
-        }],
-      // Each property on its own line when the object is broken
-      'object-property-newline': [
+        },
+      ],
+      '@stylistic/object-property-newline': [
         'error',
         {
-          allowAllPropertiesOnSameLine: false
-        }
+          allowAllPropertiesOnSameLine: false,
+        },
       ],
 
-      // ── Blank line before return ─────────────────────────────────────────
-      'padding-line-between-statements': [
+      // ── Blank lines ───────────────────────────────────────────────────────
+      '@stylistic/padding-line-between-statements': [
         'error',
         {
           blankLine: 'always',
           prev: '*',
-          next: 'return'
+          next: 'return',
         },
         {
           blankLine: 'always',
           prev: 'import',
-          next: '*'
+          next: '*',
         },
         {
           blankLine: 'any',
           prev: 'import',
-          next: 'import'
+          next: 'import',
         },
-      ],
-
-      // ── TypeScript ───────────────────────────────────────────────────────
-      '@typescript-eslint/no-unused-vars': [
-        'error',
-        {
-          argsIgnorePattern: '^_'
-
-        }
-
-      ],
-      '@typescript-eslint/no-explicit-any': 'warn',
-
-      // Disable base rule in favour of TS-aware version
-      'no-unused-vars': 'off',
-
-      // ── Semicolons ───────────────────────────────────────────────────────
-      'semi': [
-        'error',
-        'always'
-      ],
-
-      // ── Trailing commas ──────────────────────────────────────────────────
-      'comma-dangle': [
-        'error',
-        'always-multiline'
-      ],
-
-      // ── Spacing ──────────────────────────────────────────────────────────
-      // Space inside object braces: { a: 1 }
-      'object-curly-spacing': [
-        'error',
-        'always'
-      ],
-      // No spaces inside array brackets: [1, 2]
-      'array-bracket-spacing': [
-        'error',
-        'never'
-      ],
-      // No spaces inside parens: fn(a, b)
-      'space-in-parens': [
-        'error',
-        'never'
-      ],
-      // Space after comma: a, b
-      'comma-spacing': [
-        'error',
-        {
-          before: false,
-          after: true
-        }
-      ],
-      // Space around colon in object literals: { a: 1 }
-      'key-spacing': [
-        'error',
-        {
-          beforeColon: false,
-          afterColon: true
-        }
-      ],
-      // Space before block braces: if (x) {
-      'space-before-blocks': [
-        'error',
-        'always'
-      ],
-      // Space around keywords: if, for, return…
-      'keyword-spacing': [
-        'error',
-        {
-          before: true,
-          after: true
-        }
-      ],
-      // Space around infix operators: a + b, x = 1
-      'space-infix-ops': 'error',
-      // No trailing whitespace on any line
-      'no-trailing-spaces': 'error',
-      // No multiple blank lines
-      'no-multiple-empty-lines': [
-        'error',
-        {
-          max: 1,
-          maxEOF: 0
-        }
       ],
     },
   },
   {
-    // Ignore compiled output
+    // JavaScript config files (no TS parser/plugin)
+    files: ['*.mjs'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+    plugins: {
+      '@stylistic': stylistic,
+    },
+    rules: {
+      '@stylistic/quotes': [
+        'error',
+        'single',
+        {
+          avoidEscape: true,
+        },
+      ],
+      '@stylistic/indent': [
+        'error',
+        2,
+      ],
+      '@stylistic/eol-last': [
+        'error',
+        'always',
+      ],
+      '@stylistic/linebreak-style': [
+        'error',
+        'unix',
+      ],
+      '@stylistic/semi': [
+        'error',
+        'always',
+      ],
+      '@stylistic/comma-dangle': [
+        'error',
+        'always-multiline',
+      ],
+      '@stylistic/object-curly-spacing': [
+        'error',
+        'always',
+      ],
+      '@stylistic/array-bracket-spacing': [
+        'error',
+        'never',
+      ],
+      '@stylistic/comma-spacing': [
+        'error',
+        {
+          before: false,
+          after: true,
+        },
+      ],
+      '@stylistic/key-spacing': [
+        'error',
+        {
+          beforeColon: false,
+          afterColon: true,
+        },
+      ],
+      '@stylistic/space-before-blocks': [
+        'error',
+        'always',
+      ],
+      '@stylistic/keyword-spacing': [
+        'error',
+        {
+          before: true,
+          after: true,
+        },
+      ],
+      '@stylistic/space-infix-ops': 'error',
+      '@stylistic/no-trailing-spaces': 'error',
+      '@stylistic/no-multiple-empty-lines': [
+        'error',
+        {
+          max: 1,
+          maxEOF: 0,
+        },
+      ],
+      // Require newlines inside every block body (functions, if, for, try, …)
+      '@stylistic/curly-newline': [
+        'error',
+        'always',
+      ],
+      // Break array brackets and elements when 2+ items
+      '@stylistic/array-bracket-newline': [
+        'error',
+        {
+          minItems: 2,
+        },
+      ],
+      '@stylistic/array-element-newline': [
+        'error',
+        {
+          minItems: 2,
+        },
+      ],
+      // Break object braces always
+      '@stylistic/object-curly-newline': [
+        'error',
+        {
+          ObjectExpression: {
+            minProperties: 1,
+          },
+          ObjectPattern: {
+            minProperties: 1,
+          },
+          ImportDeclaration: {
+            minProperties: 5,
+            consistent: true,
+          },
+          ExportDeclaration: {
+            minProperties: 3,
+            consistent: true,
+          },
+        },
+      ],
+      '@stylistic/object-property-newline': [
+        'error',
+        {
+          allowAllPropertiesOnSameLine: false,
+        },
+      ],
+    },
+  },
+  {
     ignores: [
       'dist/**',
-      'node_modules/**'
-
+      'node_modules/**',
     ],
   },
 ];

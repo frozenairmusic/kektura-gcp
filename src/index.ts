@@ -1,17 +1,11 @@
 import * as ff from '@google-cloud/functions-framework';
 import { createStorageAdapter } from './storage';
 import { SCRAPE_TARGETS, SUBPAGE_CONCURRENCY, DOWNLOAD_CONCURRENCY } from './config';
-import { fetchSubpageUrls, extractGpxLinks, downloadGpxFile } from './scraper';
+import { extractGpxLinks, downloadGpxFile } from './scraper';
 import { toMessage } from './utils';
 import type { ISegmentMeta, Metadata, IScraperResults, IGpxLink } from './types';
 
-// Re-export everything so the public API (and tests) remain unchanged
-export * from './types';
-export * from './storage';
-export * from './config';
-export * from './scraper';
-
-// ─── Cloud Run Function entry point ───────────────────────────────────────────
+// ─── Cloud Run Function entry point ───────────────────────────────────────────────────────────
 
 /**
  * Cloud Run Function — scrapes kektura.hu for new or updated GPX files and
@@ -22,9 +16,7 @@ export * from './scraper';
  * Responds with HTTP 500 if the storage backend is unreachable or metadata
  * cannot be read.
  */
-export async function syncGpxFiles(
-  req: ff.Request, res: ff.Response,
-): Promise<void> {
+export async function syncGpxFiles(_req: ff.Request, res: ff.Response): Promise<void> {
   let adapter: ReturnType<typeof createStorageAdapter>;
   try {
     adapter = createStorageAdapter();
@@ -78,64 +70,26 @@ export async function syncGpxFiles(
 
   // All three trails are independent — scrape them concurrently.
   await Promise.allSettled(SCRAPE_TARGETS.map(async target => {
-    console.log(`\nScraping ${target.url}`);
+    console.log(`\nScraping trail '${target.trail}' (${target.subpageUrls.length} segment(s))`);
 
-    let links: IGpxLink[] = [];
+    const links: IGpxLink[] = [];
 
-    if (target.subpagePattern) {
-      // ── Two-step: listing page → subpages → GPX links ────────────────────
-      let subpageUrls: string[];
-      try {
-        subpageUrls = await fetchSubpageUrls(
-          target.url, target.subpagePattern,
-        );
-        console.log(`  Found ${subpageUrls.length} subpage(s).`);
-      } catch (err: unknown) {
-        const message = toMessage(err);
-        console.error(`  Failed to scrape listing ${target.url}: ${message}`);
-        results.errors.push({
-          source: target.url,
-          error: message,
-        });
-
-        return;
-      }
-
-      for (let i = 0; i < subpageUrls.length; i += SUBPAGE_CONCURRENCY) {
-        const chunk = subpageUrls.slice(
-          i, i + SUBPAGE_CONCURRENCY,
-        );
-        const settled = await Promise.allSettled(chunk.map(url => extractGpxLinks(url)));
-        settled.forEach((
-          result, idx,
-        ) => {
-          const subUrl = chunk[idx];
-          if (result.status === 'fulfilled') {
-            links.push(...result.value);
-          } else {
-            const message = toMessage(result.reason);
-            console.error(`  Failed to scrape subpage ${subUrl}: ${message}`);
-            results.errors.push({
-              source: subUrl,
-              error: message,
-            });
-          }
-        });
-      }
-    } else {
-      // ── Direct scrape ─────────────────────────────────────────────────────
-      try {
-        links = await extractGpxLinks(target.url);
-      } catch (err: unknown) {
-        const message = toMessage(err);
-        console.error(`  Failed to scrape ${target.url}: ${message}`);
-        results.errors.push({
-          source: target.url,
-          error: message,
-        });
-
-        return;
-      }
+    for (let i = 0; i < target.subpageUrls.length; i += SUBPAGE_CONCURRENCY) {
+      const chunk = target.subpageUrls.slice(i, i + SUBPAGE_CONCURRENCY);
+      const settled = await Promise.allSettled(chunk.map(url => extractGpxLinks(url)));
+      settled.forEach((result, idx) => {
+        const subUrl = chunk[idx];
+        if (result.status === 'fulfilled') {
+          links.push(...result.value);
+        } else {
+          const message = toMessage(result.reason);
+          console.error(`  Failed to scrape subpage ${subUrl}: ${message}`);
+          results.errors.push({
+            source: subUrl,
+            error: message,
+          });
+        }
+      });
     }
 
     console.log(`  Found ${links.length} GPX link(s).`);
@@ -148,10 +102,7 @@ export async function syncGpxFiles(
 
     for (const link of links) {
       const {
-        trail,
-        segment,
-        date,
-        filename,
+        trail, segment, date, filename,
       } = link;
       const existing: ISegmentMeta | undefined = metadata[trail]?.[segment];
       const isNew = existing === undefined;
@@ -173,22 +124,14 @@ export async function syncGpxFiles(
     console.log(`  ${toDownload.length} file(s) to download.`);
 
     for (let i = 0; i < toDownload.length; i += DOWNLOAD_CONCURRENCY) {
-      const chunk = toDownload.slice(
-        i, i + DOWNLOAD_CONCURRENCY,
-      );
+      const chunk = toDownload.slice(i, i + DOWNLOAD_CONCURRENCY);
       await Promise.all(chunk.map(async ({
-        trail,
-        segment,
-        date,
-        filename,
-        isNew,
+        trail, segment, date, filename, isNew,
       }) => {
         const label = isNew ? 'NEW' : 'UPDATED';
         console.log(`  [${label}] ${filename}`);
         try {
-          await downloadGpxFile(
-            trail, filename, adapter,
-          );
+          await downloadGpxFile(trail, filename, adapter);
           if (!metadata[trail]) metadata[trail] = {};
           metadata[trail][segment] = {
             last_updated: date,
@@ -212,9 +155,7 @@ export async function syncGpxFiles(
     try {
       // Stamp the file-level update date so consumers know when it was last touched
       (metadata as Record<string, unknown>).last_updated =
-        new Date().toISOString().slice(
-          0, 10,
-        ); // YYYY-MM-DD
+        new Date().toISOString().slice(0, 10); // YYYY-MM-DD
       await adapter.writeMetadata(metadata);
       console.log('\nmetadata.json saved.');
     } catch (err: unknown) {
@@ -245,6 +186,4 @@ export async function syncGpxFiles(
   });
 }
 
-ff.http(
-  'syncGpxFiles', syncGpxFiles,
-);
+ff.http('syncGpxFiles', syncGpxFiles);
