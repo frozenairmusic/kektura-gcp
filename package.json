@@ -14,7 +14,7 @@
     "test:coverage": "jest --runInBand --forceExit --coverage",
     "lint": "eslint src/**/*.ts test/**/*.ts",
     "lint:fix": "eslint src/**/*.ts test/**/*.ts --fix",
-    "prepare": "husky"
+    "prepare": "husky || true"
   },
   "jest": {
     "preset": "ts-jest",

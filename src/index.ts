@@ -1,7 +1,8 @@
 import * as ff from '@google-cloud/functions-framework';
 import { createStorageAdapter } from './storage';
-import { SCRAPE_TARGETS } from './config';
+import { SCRAPE_TARGETS, SUBPAGE_CONCURRENCY, DOWNLOAD_CONCURRENCY } from './config';
 import { fetchSubpageUrls, extractGpxLinks, downloadGpxFile } from './scraper';
+import { toMessage } from './utils';
 import type { ISegmentMeta, Metadata, IScraperResults, IGpxLink } from './types';
 
 // Re-export everything so the public API (and tests) remain unchanged
@@ -12,12 +13,23 @@ export * from './scraper';
 
 // ─── Cloud Run Function entry point ───────────────────────────────────────────
 
-export async function syncGpxFiles(req: ff.Request, res: ff.Response): Promise<void> {
+/**
+ * Cloud Run Function — scrapes kektura.hu for new or updated GPX files and
+ * syncs them to the configured storage backend.
+ *
+ * Responds with HTTP 200 and a JSON summary on success (individual download
+ * errors are non-fatal and reported in the `details.errors` array).
+ * Responds with HTTP 500 if the storage backend is unreachable or metadata
+ * cannot be read.
+ */
+export async function syncGpxFiles(
+  req: ff.Request, res: ff.Response,
+): Promise<void> {
   let adapter: ReturnType<typeof createStorageAdapter>;
   try {
     adapter = createStorageAdapter();
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message = toMessage(err);
     console.error(message);
     res.status(500).json({
       success: false,
@@ -30,7 +42,7 @@ export async function syncGpxFiles(req: ff.Request, res: ff.Response): Promise<v
   try {
     await adapter.checkWritable();
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message = toMessage(err);
     console.error(`Storage is not writable — aborting: ${message}`);
     res.status(500).json({
       success: false,
@@ -47,24 +59,25 @@ export async function syncGpxFiles(req: ff.Request, res: ff.Response): Promise<v
     added: [],
     updated: [],
     unchanged: [],
-    errors: [] 
+    errors: [],
   };
 
   let metadata: Metadata;
   try {
     metadata = await adapter.readMetadata();
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error('Failed to load metadata:', err);
+    const message = toMessage(err);
+    console.error(`Failed to load metadata: ${message}`);
     res.status(500).json({
       success: false,
-      error: `Failed to load metadata: ${message}` 
+      error: `Failed to load metadata: ${message}`,
     });
 
     return;
   }
 
-  for (const target of SCRAPE_TARGETS) {
+  // All three trails are independent — scrape them concurrently.
+  await Promise.allSettled(SCRAPE_TARGETS.map(async target => {
     console.log(`\nScraping ${target.url}`);
 
     let links: IGpxLink[] = [];
@@ -73,28 +86,34 @@ export async function syncGpxFiles(req: ff.Request, res: ff.Response): Promise<v
       // ── Two-step: listing page → subpages → GPX links ────────────────────
       let subpageUrls: string[];
       try {
-        subpageUrls = await fetchSubpageUrls(target.url, target.subpagePattern);
+        subpageUrls = await fetchSubpageUrls(
+          target.url, target.subpagePattern,
+        );
         console.log(`  Found ${subpageUrls.length} subpage(s).`);
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
+        const message = toMessage(err);
         console.error(`  Failed to scrape listing ${target.url}: ${message}`);
         results.errors.push({
           source: target.url,
-          error: message 
+          error: message,
         });
-        continue;
+
+        return;
       }
 
-      const SUBPAGE_CONCURRENCY = 5;
       for (let i = 0; i < subpageUrls.length; i += SUBPAGE_CONCURRENCY) {
-        const chunk = subpageUrls.slice(i, i + SUBPAGE_CONCURRENCY);
+        const chunk = subpageUrls.slice(
+          i, i + SUBPAGE_CONCURRENCY,
+        );
         const settled = await Promise.allSettled(chunk.map(url => extractGpxLinks(url)));
-        settled.forEach((result, idx) => {
+        settled.forEach((
+          result, idx,
+        ) => {
           const subUrl = chunk[idx];
           if (result.status === 'fulfilled') {
             links.push(...result.value);
           } else {
-            const message = result.reason instanceof Error ? result.reason.message : String(result.reason);
+            const message = toMessage(result.reason);
             console.error(`  Failed to scrape subpage ${subUrl}: ${message}`);
             results.errors.push({
               source: subUrl,
@@ -108,13 +127,14 @@ export async function syncGpxFiles(req: ff.Request, res: ff.Response): Promise<v
       try {
         links = await extractGpxLinks(target.url);
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
+        const message = toMessage(err);
         console.error(`  Failed to scrape ${target.url}: ${message}`);
         results.errors.push({
           source: target.url,
-          error: message 
+          error: message,
         });
-        continue;
+
+        return;
       }
     }
 
@@ -124,13 +144,7 @@ export async function syncGpxFiles(req: ff.Request, res: ff.Response): Promise<v
       metadata[target.trail] = {};
     }
 
-    const toDownload: Array<{
-      trail: string;
-      segment: string;
-      date: string;
-      filename: string;
-      isNew: boolean;
-    }> = [];
+    const toDownload: (IGpxLink & { isNew: boolean })[] = [];
 
     for (const link of links) {
       const {
@@ -158,9 +172,10 @@ export async function syncGpxFiles(req: ff.Request, res: ff.Response): Promise<v
 
     console.log(`  ${toDownload.length} file(s) to download.`);
 
-    const DOWNLOAD_CONCURRENCY = 3;
     for (let i = 0; i < toDownload.length; i += DOWNLOAD_CONCURRENCY) {
-      const chunk = toDownload.slice(i, i + DOWNLOAD_CONCURRENCY);
+      const chunk = toDownload.slice(
+        i, i + DOWNLOAD_CONCURRENCY,
+      );
       await Promise.all(chunk.map(async ({
         trail,
         segment,
@@ -171,51 +186,53 @@ export async function syncGpxFiles(req: ff.Request, res: ff.Response): Promise<v
         const label = isNew ? 'NEW' : 'UPDATED';
         console.log(`  [${label}] ${filename}`);
         try {
-          await downloadGpxFile(trail, filename, adapter);
+          await downloadGpxFile(
+            trail, filename, adapter,
+          );
           if (!metadata[trail]) metadata[trail] = {};
           metadata[trail][segment] = {
             last_updated: date,
             filename,
           };
-
-          return (isNew ? results.added : results.updated).push(`${trail}_${segment}`);
+          (isNew ? results.added : results.updated).push(`${trail}_${segment}`);
         } catch (err: unknown) {
-          const message = err instanceof Error ? err.message : String(err);
+          const message = toMessage(err);
           console.error(`  Failed to fetch/store ${filename}: ${message}`);
-
-          return results.errors.push({
+          results.errors.push({
             filename,
             error: message,
           });
         }
       }));
     }
-  }
+  }));
 
   // Persist metadata only when something changed
   if (results.added.length > 0 || results.updated.length > 0) {
     try {
       // Stamp the file-level update date so consumers know when it was last touched
       (metadata as Record<string, unknown>).last_updated =
-        new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+        new Date().toISOString().slice(
+          0, 10,
+        ); // YYYY-MM-DD
       await adapter.writeMetadata(metadata);
       console.log('\nmetadata.json saved.');
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error('Failed to save metadata:', err);
+      const message = toMessage(err);
+      console.error(`Failed to save metadata: ${message}`);
       results.errors.push({
         source: 'metadata.json',
-        error: message 
+        error: message,
       });
     }
   }
 
   const duration_ms = Date.now() - startTime;
   const summary = {
-    added:     results.added.length,
-    updated:   results.updated.length,
+    added: results.added.length,
+    updated: results.updated.length,
     unchanged: results.unchanged.length,
-    errors:    results.errors.length,
+    errors: results.errors.length,
     duration_ms,
   };
 
@@ -224,8 +241,10 @@ export async function syncGpxFiles(req: ff.Request, res: ff.Response): Promise<v
   res.status(200).json({
     success: true,
     summary,
-    details: results 
+    details: results,
   });
 }
 
-ff.http('syncGpxFiles', syncGpxFiles);
+ff.http(
+  'syncGpxFiles', syncGpxFiles,
+);
