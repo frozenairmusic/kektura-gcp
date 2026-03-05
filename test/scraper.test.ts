@@ -65,9 +65,9 @@ describe('extractGpxLinks', () => {
   });
 
   test('deduplicates identical filenames appearing in both href and body text', async () => {
-    const html = '<html><body>'
-      + '<a href="ak_05_20251203.gpx">ak_05_20251203.gpx</a>'
-      + '</body></html>';
+    const html = '<html><body>' +
+      '<a href="ak_05_20251203.gpx">ak_05_20251203.gpx</a>' +
+      '</body></html>';
     axiosMock.onGet(PAGE_URL).reply(200, html,
     );
     const links = await extractGpxLinks(PAGE_URL);

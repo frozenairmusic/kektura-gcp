@@ -98,46 +98,37 @@ export class LocalStorageAdapter implements IStorageAdapter {
   }
 
   async checkWritable(): Promise<void> {
-    const probe = path.join(this.outputDir, '.write-probe',
-    );
-    fs.writeFileSync(probe, '',
-    );
+    const probe = path.join(this.outputDir, '.write-probe');
+    fs.writeFileSync(probe, '');
     fs.unlinkSync(probe);
   }
 
   async readMetadata(): Promise<Metadata> {
-    const filePath = path.join(this.outputDir, 'metadata.json',
-    );
+    const filePath = path.join(this.outputDir, 'metadata.json');
+
     if (!fs.existsSync(filePath)) {
       console.log(`metadata.json not found in ${this.outputDir} — starting fresh.`);
 
       return {};
     }
 
-    return JSON.parse(fs.readFileSync(filePath, 'utf8',
-    )) as Metadata;
+    return JSON.parse(fs.readFileSync(filePath, 'utf8')) as Metadata;
   }
 
   async writeMetadata(metadata: Metadata): Promise<void> {
-    const filePath = path.join(this.outputDir, 'metadata.json',
-    );
-    fs.writeFileSync(filePath, JSON.stringify(metadata, null, 2,
-    ), 'utf8',
-    );
+    const filePath = path.join(this.outputDir, 'metadata.json');
+    fs.writeFileSync(filePath, JSON.stringify(metadata, null, 2), 'utf8');
     console.log(`  Saved → ${filePath}`);
   }
 
-  async writeGpx(trail: string, filename: string, data: Buffer,
-  ): Promise<void> {
-    const dir = path.join(this.outputDir, 'gpx', trail,
-    );
+  async writeGpx(trail: string, filename: string, data: Buffer): Promise<void> {
+    const dir = path.join(this.outputDir, 'gpx', trail);
     fs.mkdirSync(dir, {
       recursive: true,
     });
-    const filePath = path.join(dir, filename,
-    );
-    fs.writeFileSync(filePath, data,
-    );
+
+    const filePath = path.join(dir, filename);
+    fs.writeFileSync(filePath, data);
     console.log(`  Stored → ${filePath}`);
   }
 }

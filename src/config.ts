@@ -6,8 +6,7 @@ import type { IScrapeTarget } from './types';
  * Base URL from which GPX files are downloaded.
  * Overridable via the `GPX_BASE_URL` environment variable (useful for local testing).
  */
-export const GPX_BASE_URL = process.env.GPX_BASE_URL ??
-  'https://turistaterkepek.hu/kekturahu/gpx/nagyszakasz';
+export const GPX_BASE_URL = process.env.GPX_BASE_URL ?? 'https://turistaterkepek.hu/kekturahu/gpx/nagyszakasz';
 
 // ─── Trail segment counts ─────────────────────────────────────────────────────
 
@@ -31,15 +30,15 @@ export const TRAIL_SEGMENT_COUNTS = {
  */
 function segmentUrls(trail: string, count: number,
 ): string[] {
-  return Array.from({
-    length: count,
-  }, (_, i,
-  ) => {
-    const n = String(i + 1).padStart(2, '0',
-    );
+  return Array.from(
+    {
+      length: count,
+    },
+    (_, i) => {
+      const n = `${i + 1}`.padStart(2, '0');
 
-    return `https://www.kektura.hu/${trail}-szakasz/${trail}-${n}`;
-  });
+      return `https://www.kektura.hu/${trail}-szakasz/${trail}-${n}`;
+    });
 }
 
 // ─── Scrape targets ───────────────────────────────────────────────────────────

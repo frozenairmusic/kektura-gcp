@@ -118,6 +118,15 @@ export default [
         },
       ],
       '@stylistic/space-infix-ops': 'error',
+      '@stylistic/operator-linebreak': [
+        'error',
+        'after',
+        {
+          overrides: {
+            '=': 'none',
+          },
+        },
+      ],
       '@stylistic/no-trailing-spaces': 'error',
       '@stylistic/no-multiple-empty-lines': [
         'error',
@@ -267,6 +276,15 @@ export default [
         },
       ],
       '@stylistic/space-infix-ops': 'error',
+      '@stylistic/operator-linebreak': [
+        'error',
+        'after',
+        {
+          overrides: {
+            '=': 'none',
+          },
+        },
+      ],
       '@stylistic/no-trailing-spaces': 'error',
       '@stylistic/no-multiple-empty-lines': [
         'error',

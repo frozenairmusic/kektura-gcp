@@ -77,8 +77,8 @@ export async function syncGpxFiles(_req: ff.Request, res: ff.Response): Promise<
     for (let i = 0; i < target.subpageUrls.length; i += SUBPAGE_CONCURRENCY) {
       const chunk = target.subpageUrls.slice(i, i + SUBPAGE_CONCURRENCY);
       const settled = await Promise.allSettled(chunk.map(url => extractGpxLinks(url)));
-      settled.forEach((result, idx) => {
-        const subUrl = chunk[idx];
+      settled.forEach((result, index) => {
+        const subUrl = chunk[index];
         if (result.status === 'fulfilled') {
           links.push(...result.value);
         } else {
@@ -154,8 +154,7 @@ export async function syncGpxFiles(_req: ff.Request, res: ff.Response): Promise<
   if (results.added.length > 0 || results.updated.length > 0) {
     try {
       // Stamp the file-level update date so consumers know when it was last touched
-      (metadata as Record<string, unknown>).last_updated =
-        new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+      (metadata as Record<string, unknown>).last_updated = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
       await adapter.writeMetadata(metadata);
       console.log('\nmetadata.json saved.');
     } catch (err: unknown) {

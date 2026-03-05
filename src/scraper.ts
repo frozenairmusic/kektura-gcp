@@ -34,10 +34,11 @@ export async function extractGpxLinks(pageUrl: string): Promise<IGpxLink[]> {
 
   // `$.html()` serialises the full document, covering href attributes, plain
   // text, and any other occurrence of a GPX filename in one pass.
-  const re = new RegExp(GPX_FILENAME_REGEX.source, 'gi',
-  );
+  const re = new RegExp(GPX_FILENAME_REGEX.source, 'gi');
+
   for (const match of $.html().matchAll(re)) {
     const key = match[0].toLowerCase();
+
     if (!seen.has(key)) {
       seen.add(key);
       links.push({
@@ -63,9 +64,11 @@ export async function downloadGpxFile(trail: string,
 ): Promise<void> {
   const sourceUrl = `${GPX_BASE_URL}/${filename}`;
   console.log(`  Downloading ${sourceUrl}`);
+
   const response = await http.get<ArrayBuffer>(sourceUrl, {
     responseType: 'arraybuffer',
   });
+
   await adapter.writeGpx(trail, filename, Buffer.from(response.data),
   );
 }
