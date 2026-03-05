@@ -109,11 +109,12 @@ npm run test:coverage
 
 ```
 src/
-  config.ts       Scrape targets and filename regex
+  config.ts       Scrape targets, filename regex, concurrency limits
   index.ts        Cloud Run Function entry point (syncGpxFiles)
   scraper.ts      HTTP scraping logic (fetchSubpageUrls, extractGpxLinks, downloadGpxFile)
   storage.ts      Storage abstraction (GcsStorageAdapter, LocalStorageAdapter)
   types.ts        Shared TypeScript types
+  utils.ts        Shared utilities (toMessage)
 test/
   helpers.ts
   scraper.test.ts

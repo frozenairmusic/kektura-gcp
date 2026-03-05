@@ -9,13 +9,16 @@ describe('SCRAPE_TARGETS', () => {
     expect(trails).toEqual([
       'ak',
       'okt',
-      'rpddk'
+      'rpddk',
     ]);
   });
 
-  test('each target has a non-empty url', () => {
+  test('each target has non-empty subpageUrls with valid https URLs', () => {
     for (const target of SCRAPE_TARGETS) {
-      expect(target.url).toMatch(/^https?:\/\//);
+      expect(target.subpageUrls.length).toBeGreaterThan(0);
+      for (const url of target.subpageUrls) {
+        expect(url).toMatch(/^https:\/\/www\.kektura\.hu\//);
+      }
     }
   });
 });
@@ -32,7 +35,8 @@ describe('GPX_FILENAME_REGEX', () => {
       'okt_27_20250919.gpx',
     ];
     for (const name of valid) {
-      expect(new RegExp(GPX_FILENAME_REGEX.source, 'gi').test(name)).toBe(true);
+      expect(new RegExp(GPX_FILENAME_REGEX.source, 'gi',
+      ).test(name)).toBe(true);
     }
   });
 
@@ -45,7 +49,8 @@ describe('GPX_FILENAME_REGEX', () => {
       'okt01_20251107.gpx',
     ];
     for (const name of invalid) {
-      expect(new RegExp(GPX_FILENAME_REGEX.source, 'gi').test(name)).toBe(false);
+      expect(new RegExp(GPX_FILENAME_REGEX.source, 'gi',
+      ).test(name)).toBe(false);
     }
   });
 });
