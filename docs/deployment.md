@@ -33,7 +33,7 @@ Go to **Settings → Secrets and variables → Actions** and add:
 | Variable | Default | Description |
 |---|---|---|
 | `GCP_REGION` | `europe-central2` | GCP region for the function and scheduler |
-| `SCHEDULER_JOB_NAME` | `kektura-gpx-scraper` | Cloud Scheduler job name |
+| `SCHEDULER_JOB_NAME` | `kektura-gpx-sync` | Cloud Scheduler job name |
 | `SCHEDULER_SCHEDULE` | `0 4 * * 3` | Cron expression (every Wednesday at 04:00 UTC) |
 | `SCHEDULER_TIMEZONE` | `UTC` | Timezone for the cron schedule (e.g. `Europe/Budapest`) |
 
@@ -96,7 +96,7 @@ URI=$(gcloud functions describe sync-gpx-files \
 curl -H "Authorization: Bearer ${TOKEN}" "${URI}"
 
 # Trigger the scheduler job immediately (simulates the cron firing)
-gcloud scheduler jobs run kektura-gpx-scraper --location=europe-central2
+gcloud scheduler jobs run kektura-gpx-sync --location=europe-central2
 ```
 
 ---

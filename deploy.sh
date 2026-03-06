@@ -27,7 +27,7 @@ MEMORY="256Mi"
 TIMEOUT="300s"          # 5 minutes — gracious upper bound for scraping + uploads
 MIN_INSTANCES="0"
 MAX_INSTANCES="1"       # Scraper should not run concurrently
-SCHEDULER_JOB="${SCHEDULER_JOB_NAME:-kektura-gpx-scraper}"
+SCHEDULER_JOB="${SCHEDULER_JOB_NAME:-kektura-gpx-sync}"
 SCHEDULE="${SCHEDULER_SCHEDULE:-0 4 * * 3}"   # Every Wednesday at 04:00 UTC
 TIMEZONE="${SCHEDULER_TIMEZONE:-UTC}"
 

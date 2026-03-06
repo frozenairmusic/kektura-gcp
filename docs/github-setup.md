@@ -25,6 +25,6 @@ Optional. Go to the **Variables** tab. If not set, the defaults from `deploy.sh`
 | Variable | Default | Description |
 |---|---|---|
 | `GCP_REGION` | `europe-central2` | GCP region for the function and scheduler |
-| `SCHEDULER_JOB_NAME` | `kektura-gpx-scraper` | Cloud Scheduler job name |
+| `SCHEDULER_JOB_NAME` | `kektura-gpx-sync` | Cloud Scheduler job name |
 | `SCHEDULER_SCHEDULE` | `0 4 * * 3` | Cron expression (every Wednesday at 04:00 UTC) |
 | `SCHEDULER_TIMEZONE` | `UTC` | Timezone for the cron schedule (e.g. `Europe/Budapest`) |
