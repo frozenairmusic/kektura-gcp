@@ -66,6 +66,14 @@ gcloud projects add-iam-policy-binding ${PROJECT} \
 
 gcloud projects add-iam-policy-binding ${PROJECT} \
   --member="serviceAccount:${SA}" \
+  --role="roles/run.admin"
+
+gcloud projects add-iam-policy-binding ${PROJECT} \
+  --member="serviceAccount:${SA}" \
+  --role="roles/cloudscheduler.admin"
+
+gcloud projects add-iam-policy-binding ${PROJECT} \
+  --member="serviceAccount:${SA}" \
   --role="roles/storage.objectViewer"
 
 gcloud projects add-iam-policy-binding ${PROJECT} \
@@ -77,7 +85,23 @@ gcloud projects add-iam-policy-binding ${PROJECT} \
   --role="roles/artifactregistry.writer"
 ```
 
-### 4b. Compute SA (Cloud Run Function runtime)
+### 4b. Scheduler SA (used by Cloud Scheduler to invoke the function)
+
+```bash
+gcloud iam service-accounts create kektura-scheduler \
+  --display-name="Kektura GPX Scheduler"
+```
+
+Grant it permission to invoke the function (run after first deployment):
+
+```bash
+gcloud functions add-invoker-policy-binding sync-gpx-files \
+  --gen2 \
+  --region=europe-central2 \
+  --member="serviceAccount:kektura-scheduler@${PROJECT}.iam.gserviceaccount.com"
+```
+
+### 4c. Compute SA (Cloud Run Function runtime)
 
 The function runs as the default Compute Engine service account. Grant it write access to the bucket:
 
@@ -90,9 +114,7 @@ gcloud storage buckets add-iam-policy-binding gs://<YOUR_BUCKET_NAME> \
   --role="roles/storage.objectAdmin"
 ```
 
-### 4c. Cloud Build SA
-
-Cloud Build also needs a few permissions to build and push images during deployment:
+### 4d. Cloud Build SA
 
 ```bash
 CLOUDBUILD_SA="${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com"
@@ -139,8 +161,6 @@ gcloud iam workload-identity-pools providers create-oidc github-provider \
   --attribute-condition="assertion.repository=='${GITHUB_ORG}/${REPO}'"
 
 # Allow the deployer SA to be impersonated from GitHub Actions
-POOL_FULL="projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/github-pool/providers/github-provider"
-
 gcloud iam service-accounts add-iam-policy-binding \
   kektura-deployer@${PROJECT}.iam.gserviceaccount.com \
   --role="roles/iam.workloadIdentityUser" \
@@ -171,6 +191,7 @@ Copy that value into the `GCP_WORKLOAD_IDENTITY_PROVIDER` GitHub secret (see [de
 | GCS Bucket | `gs://<YOUR_BUCKET_NAME>` |
 | Cloud Run Function | `sync-gpx-files` |
 | Deployer SA | `kektura-deployer@<YOUR_PROJECT_ID>.iam.gserviceaccount.com` |
+| Scheduler SA | `kektura-scheduler@<YOUR_PROJECT_ID>.iam.gserviceaccount.com` |
 | Compute SA | `<YOUR_PROJECT_NUMBER>-compute@developer.gserviceaccount.com` |
 | WIF Pool | `github-pool` |
 | WIF Provider | `github-provider` |

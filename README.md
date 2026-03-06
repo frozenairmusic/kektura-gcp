@@ -1,6 +1,6 @@
 # kektura-gcp
 
-A GCP Cloud Run Function (2nd Gen) that scrapes [kektura.hu](https://kektura.hu) for GPX trail files and syncs them to a Google Cloud Storage bucket.
+A GCP Cloud Run Function (2nd Gen) that scrapes [kektura.hu](https://kektura.hu) for GPX trail files and syncs them to a Google Cloud Storage bucket. Triggered on a schedule by Cloud Scheduler.
 
 ---
 
@@ -17,6 +17,23 @@ On each invocation the function:
 7. **Returns** a JSON summary of what was added, updated, unchanged, or errored.
 
 Scraping is parallelised (5 subpages concurrently, 3 GPX downloads concurrently) to stay well within the 300 s function timeout.
+
+---
+
+## Architecture
+
+```
+GitHub Actions (push to master)
+  └─▶ deploy.sh
+        ├─▶ gcloud functions deploy  →  Cloud Run Function (sync-gpx-files)
+        └─▶ gcloud scheduler jobs    →  Cloud Scheduler (kektura-gpx-scraper)
+                                              │  fires on cron schedule
+                                              ▼
+                                    Cloud Run Function
+                                              │  scrapes kektura.hu
+                                              ▼
+                                    Google Cloud Storage bucket
+```
 
 ---
 
@@ -60,11 +77,18 @@ On failure the function returns HTTP 500 with `{ "success": false, "error": "...
 ```bash
 npm install
 
-# Run locally (no GCP needed)
-LOCAL_OUTPUT_DIR=./output npm start
-
 # Run tests
 npm test
+
+# Run linter
+npm run lint
+npm run lint:fix
+
+# Build TypeScript
+npm run build
+
+# Run locally (no GCP needed)
+LOCAL_OUTPUT_DIR=./output npm start
 
 # Deploy manually
 GCS_BUCKET_NAME=<YOUR_BUCKET_NAME> ./deploy.sh
@@ -80,6 +104,7 @@ GCS_BUCKET_NAME=<YOUR_BUCKET_NAME> ./deploy.sh
 | [docs/local-development.md](docs/local-development.md) | Local setup, environment variables, npm scripts, project structure |
 | [docs/deployment.md](docs/deployment.md) | GitHub Actions CI/CD and manual deployment via `deploy.sh` |
 | [docs/scheduler.md](docs/scheduler.md) | Cloud Scheduler setup (weekly cron trigger) |
+| [docs/github-setup.md](docs/github-setup.md) | GitHub Actions secrets and variables reference |
 
 ---
 
@@ -89,5 +114,5 @@ GCS_BUCKET_NAME=<YOUR_BUCKET_NAME> ./deploy.sh
 - **Framework** — `@google-cloud/functions-framework` (2nd Gen)
 - **Storage** — `@google-cloud/storage`
 - **Scraping** — `axios` + `cheerio`
-- **Tests** — Jest + ts-jest + axios-mock-adapter (52 tests, 0 live network calls)
+- **Tests** — Jest + ts-jest + axios-mock-adapter (47 tests, 0 live network calls)
 - **CI/CD** — GitHub Actions with Workload Identity Federation (no SA keys stored)
