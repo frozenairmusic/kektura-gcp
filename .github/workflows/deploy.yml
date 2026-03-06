@@ -48,4 +48,7 @@ jobs:
           GCP_REGION: ${{ vars.GCP_REGION }}
           GCS_BUCKET_NAME: ${{ secrets.GCS_BUCKET_NAME }}
           SCHEDULER_SA_EMAIL: ${{ secrets.GCP_SCHEDULER_SA_EMAIL }}
+          SCHEDULER_JOB_NAME: ${{ vars.SCHEDULER_JOB_NAME }}
+          SCHEDULER_SCHEDULE: ${{ vars.SCHEDULER_SCHEDULE }}
+          SCHEDULER_TIMEZONE: ${{ vars.SCHEDULER_TIMEZONE }}
         run: bash deploy.sh
