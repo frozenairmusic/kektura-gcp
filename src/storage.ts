@@ -5,6 +5,10 @@ import type { Metadata } from './types';
 
 // ─── Interface ────────────────────────────────────────────────────────────────
 
+/**
+ * Common interface for storage backends.
+ * Implementations must handle metadata persistence and GPX file storage.
+ */
 export interface IStorageAdapter {
   /** Read metadata.json; returns {} when it doesn't exist yet. */
   readMetadata(): Promise<Metadata>;
@@ -12,17 +16,36 @@ export interface IStorageAdapter {
   writeMetadata(metadata: Metadata): Promise<void>;
   /** Store a GPX file at path gpx/<trail>/<filename>. */
   writeGpx(trail: string, filename: string, data: Buffer): Promise<void>;
+  /** Probe write access — throws if the storage backend is not writable. */
+  checkWritable(): Promise<void>;
 }
 
 // ─── GCS adapter ─────────────────────────────────────────────────────────────
 
+/** Storage adapter that reads and writes files in a Google Cloud Storage bucket. */
 export class GcsStorageAdapter implements IStorageAdapter {
   private storage = new Storage();
 
-  constructor(private readonly bucketName: string) { }
+  constructor(private readonly bucketName: string) {
+
+  }
+
+  /** Convenience accessor for the configured GCS bucket handle. */
+  private get bucket() {
+    return this.storage.bucket(this.bucketName);
+  }
+
+  async checkWritable(): Promise<void> {
+    const probe = this.bucket.file('.write-probe');
+    await probe.save('', {
+      contentType: 'text/plain',
+      resumable: false,
+    });
+    await probe.delete();
+  }
 
   async readMetadata(): Promise<Metadata> {
-    const file = this.storage.bucket(this.bucketName).file('metadata.json');
+    const file = this.bucket.file('metadata.json');
     try {
       const [contents] = await file.download();
 
@@ -38,24 +61,24 @@ export class GcsStorageAdapter implements IStorageAdapter {
   }
 
   async writeMetadata(metadata: Metadata): Promise<void> {
-    await this.storage
-      .bucket(this.bucketName)
+    await this.bucket
       .file('metadata.json')
-      .save(JSON.stringify(metadata, null, 2), {
+      .save(JSON.stringify(metadata, null, 2,
+      ), {
         contentType: 'application/json',
         resumable: false,
       });
     console.log(`  Saved → gs://${this.bucketName}/metadata.json`);
   }
 
-  async writeGpx(trail: string, filename: string, data: Buffer): Promise<void> {
+  async writeGpx(trail: string, filename: string, data: Buffer,
+  ): Promise<void> {
     const destPath = `gpx/${trail}/${filename}`;
-    await this.storage
-      .bucket(this.bucketName)
+    await this.bucket
       .file(destPath)
       .save(data, {
         contentType: 'application/gpx+xml',
-        resumable: false 
+        resumable: false,
       });
     console.log(`  Stored → gs://${this.bucketName}/${destPath}`);
   }
@@ -63,13 +86,26 @@ export class GcsStorageAdapter implements IStorageAdapter {
 
 // ─── Local filesystem adapter ─────────────────────────────────────────────────
 
+/**
+ * Storage adapter that reads and writes files on the local filesystem.
+ * Intended for local development and integration testing.
+ */
 export class LocalStorageAdapter implements IStorageAdapter {
   constructor(private readonly outputDir: string) {
-    fs.mkdirSync(outputDir, { recursive: true });
+    fs.mkdirSync(outputDir, {
+      recursive: true,
+    });
+  }
+
+  async checkWritable(): Promise<void> {
+    const probe = path.join(this.outputDir, '.write-probe');
+    fs.writeFileSync(probe, '');
+    fs.unlinkSync(probe);
   }
 
   async readMetadata(): Promise<Metadata> {
     const filePath = path.join(this.outputDir, 'metadata.json');
+
     if (!fs.existsSync(filePath)) {
       console.log(`metadata.json not found in ${this.outputDir} — starting fresh.`);
 
@@ -87,7 +123,10 @@ export class LocalStorageAdapter implements IStorageAdapter {
 
   async writeGpx(trail: string, filename: string, data: Buffer): Promise<void> {
     const dir = path.join(this.outputDir, 'gpx', trail);
-    fs.mkdirSync(dir, { recursive: true });
+    fs.mkdirSync(dir, {
+      recursive: true,
+    });
+
     const filePath = path.join(dir, filename);
     fs.writeFileSync(filePath, data);
     console.log(`  Stored → ${filePath}`);
@@ -96,6 +135,14 @@ export class LocalStorageAdapter implements IStorageAdapter {
 
 // ─── Factory ──────────────────────────────────────────────────────────────────
 
+/**
+ * Selects and constructs a storage adapter based on environment variables.
+ *
+ * - `LOCAL_OUTPUT_DIR` → {@link LocalStorageAdapter} (writes to local filesystem)
+ * - `GCS_BUCKET_NAME`  → {@link GcsStorageAdapter} (writes to Google Cloud Storage)
+ *
+ * @throws {Error} When neither environment variable is set.
+ */
 export function createStorageAdapter(): IStorageAdapter {
   const localDir = process.env.LOCAL_OUTPUT_DIR;
   if (localDir) {
@@ -107,7 +154,5 @@ export function createStorageAdapter(): IStorageAdapter {
   if (bucket) {
     return new GcsStorageAdapter(bucket);
   }
-  throw new Error(
-    'Storage not configured. Set GCS_BUCKET_NAME (GCS) or LOCAL_OUTPUT_DIR (local).'
-  );
+  throw new Error('Storage not configured. Set GCS_BUCKET_NAME (GCS) or LOCAL_OUTPUT_DIR (local).');
 }

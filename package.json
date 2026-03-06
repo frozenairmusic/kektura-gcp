@@ -12,8 +12,9 @@
     "deploy": "bash deploy.sh",
     "test": "jest --runInBand --forceExit",
     "test:coverage": "jest --runInBand --forceExit --coverage",
-    "lint": "eslint src/**/*.ts test/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts test/**/*.ts --fix"
+    "lint": "eslint src/**/*.ts test/**/*.ts eslint.config.mjs",
+    "lint:fix": "eslint src/**/*.ts test/**/*.ts eslint.config.mjs --fix",
+    "prepare": "husky || true"
   },
   "jest": {
     "preset": "ts-jest",
@@ -30,6 +31,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@stylistic/eslint-plugin": "^5.9.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.3.3",
     "@typescript-eslint/eslint-plugin": "^8.56.1",
@@ -37,6 +39,7 @@
     "axios-mock-adapter": "^2.1.0",
     "eslint": "^10.0.2",
     "globals": "^17.4.0",
+    "husky": "^9.1.7",
     "jest": "^30.2.0",
     "ts-jest": "^29.4.6",
     "typescript": "^5.9.3"
