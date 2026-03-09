@@ -11,10 +11,10 @@ Required. Go to the **Secrets** tab and add:
 | Secret | Description |
 |---|---|
 | `GCP_WORKLOAD_IDENTITY_PROVIDER` | Full provider resource name, e.g. `projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/github-pool/providers/github-provider` |
-| `GCP_SERVICE_ACCOUNT` | Deployer SA email, e.g. `kektura-deployer@kektura-20260303.iam.gserviceaccount.com` |
-| `GCP_PROJECT_ID` | GCP project ID, e.g. `kektura-20260303` |
-| `GCS_BUCKET_NAME` | GCS bucket name, e.g. `kektura-gpx` |
-| `GCP_SCHEDULER_SA_EMAIL` | Scheduler SA email, e.g. `kektura-scheduler@kektura-20260303.iam.gserviceaccount.com` |
+| `GCP_SERVICE_ACCOUNT` | Deployer SA email, e.g. `kektura-deployer@my-kektura-project.iam.gserviceaccount.com` |
+| `GCP_PROJECT_ID` | GCP project ID, e.g. `my-kektura-project` |
+| `GCS_BUCKET_NAME` | GCS bucket name, e.g. `kektura-gpx-bucket` |
+| `GCP_SCHEDULER_SA_EMAIL` | Scheduler SA email, e.g. `kektura-scheduler@my-kektura-project.iam.gserviceaccount.com` |
 
 ---
 

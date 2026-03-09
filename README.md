@@ -16,7 +16,7 @@ On each invocation the function:
 6. **Updates** `metadata.json` with the new state and a top-level `last_updated` date.
 7. **Returns** a JSON summary of what was added, updated, unchanged, or errored.
 
-Scraping is parallelised (5 subpages concurrently, 3 GPX downloads concurrently) to stay well within the 300 s function timeout.
+Scraping is parallelised (7 subpages concurrently, 7 GPX downloads concurrently) to stay well within the 300 s function timeout.
 
 ---
 

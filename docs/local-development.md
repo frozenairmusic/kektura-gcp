@@ -93,7 +93,8 @@ Tests are in `test/` and use Jest + ts-jest. No live network calls or GCP creden
 
 | File | What it covers |
 |---|---|
-| `test/scraper.test.ts` | `fetchSubpageUrls`, `extractGpxLinks`, `downloadGpxFile` |
+| `test/config.test.ts` | `SCRAPE_TARGETS` structure, `GPX_FILENAME_REGEX` matching rules |
+| `test/scraper.test.ts` | `extractGpxLinks`, `downloadGpxFile` |
 | `test/storage.test.ts` | `GcsStorageAdapter`, `LocalStorageAdapter`, `createStorageAdapter` |
 | `test/index.test.ts` | Full `syncGpxFiles` handler integration (end-to-end with mocks) |
 | `test/helpers.ts` | Shared test utilities (`makeTempDir`, `mockReq`, `mockRes`, `htmlWithLinks`) |
