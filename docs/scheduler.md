@@ -43,7 +43,7 @@ gcloud scheduler jobs create http kektura-gpx-sync \
   --location=europe-central2 \
   --schedule='0 4 * * 3' \
   --uri="${FUNCTION_URI}" \
-  --http-method=GET \
+  --http-method=POST \
   --oidc-service-account-email=kektura-scheduler@<YOUR_PROJECT_ID>.iam.gserviceaccount.com
 ```
 

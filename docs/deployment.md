@@ -101,6 +101,19 @@ gcloud scheduler jobs run kektura-gpx-sync --location=europe-central2
 
 ---
 
+## Pull request workflow
+
+The workflow at [`.github/workflows/pr.yml`](../.github/workflows/pr.yml) runs on every pull request targeting `master`:
+
+1. Install dependencies (`npm ci`)
+2. Lint (`npm run lint`)
+3. Test with coverage (`npm run test:coverage`)
+4. Build TypeScript (`npm run build`)
+
+No GCP credentials are required — the PR workflow does not deploy anything.
+
+---
+
 ## Viewing logs
 
 ```bash
