@@ -14,6 +14,31 @@ export function htmlWithPlainText(text: string): string {
   return `<html><body><p>${text}</p></body></html>`;
 }
 
+interface SegmentPageOptions {
+  code: string;
+  title: string;
+  distance?: string;
+  elevation?: string;
+  walkingTime?: string;
+  stampCount?: string;
+  gpxLinks?: string[];
+}
+
+/** Build an HTML page mimicking a kektura.hu segment subpage. */
+export function htmlWithSegmentPage(opts: SegmentPageOptions): string {
+  const links = (opts.gpxLinks ?? []).map(h => `<a href="${h}">link</a>`).join('\n');
+
+  return `<html><body>
+    <h1>${opts.code}</h1>
+    <div class="szakasz-title">${opts.title}</div>
+    <div class="item"><div class="name">táv</div><div class="value">${opts.distance ?? ''}</div></div>
+    <div class="item"><div class="name">szint + / -</div><div class="value">${opts.elevation ?? ''}</div></div>
+    <div class="item"><div class="name">menetidő</div><div class="value">${opts.walkingTime ?? ''}</div></div>
+    <div class="item"><div class="name">bélyegzőhelyek</div><div class="value">${opts.stampCount ?? ''}</div></div>
+    ${links}
+  </body></html>`;
+}
+
 // ─── Temp directory ───────────────────────────────────────────────────────────
 
 /** Create a real temp directory; caller must clean up. */

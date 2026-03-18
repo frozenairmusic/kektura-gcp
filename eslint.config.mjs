@@ -37,6 +37,12 @@ export default [
       '@typescript-eslint/no-explicit-any': 'warn',
       'no-unused-vars': 'off',
 
+      // ── Braces ───────────────────────────────────────────────────────────
+      'curly': [
+        'error',
+        'all',
+      ],
+
       // ── Quotes ───────────────────────────────────────────────────────────
       '@stylistic/quotes': [
         'error',

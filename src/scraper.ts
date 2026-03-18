@@ -1,6 +1,6 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import type { IGpxLink } from './types';
+import type { IGpxLink, ISegmentInfo, ISubpageResult } from './types';
 import type { IStorageAdapter } from './storage';
 import { GPX_BASE_URL, GPX_FILENAME_REGEX } from './config';
 
@@ -19,13 +19,48 @@ export const http = axios.create({
   },
 });
 
+// ─── Segment info extraction ──────────────────────────────────────────────────
+
+/**
+ * Extract segment info (code, title, distance, elevation, walking time,
+ * stamp count) from a parsed kektura.hu subpage.
+ */
+function extractSegmentInfo($: cheerio.CheerioAPI): ISegmentInfo | undefined {
+  const code = $('h1').first().text().trim();
+  const title = $('div.szakasz-title').first().text().trim();
+
+  if (!code || !title) {
+    return undefined;
+  }
+
+  const fields = new Map<string, string>();
+
+  $('div.item').each((_, el) => {
+    const name = $(el).find('div.name').first().text().trim().toLowerCase();
+    const value = $(el).find('div.value').first().text().trim();
+
+    if (name && value && !fields.has(name)) {
+      fields.set(name, value);
+    }
+  });
+
+  return {
+    code,
+    title,
+    distance: fields.get('táv') ?? '',
+    elevation: fields.get('szint + / -') ?? '',
+    walking_time: fields.get('menetidő') ?? '',
+    stamp_count: fields.get('bélyegzőhelyek') ?? '',
+  };
+}
+
 // ─── GPX link extraction ──────────────────────────────────────────────────────
 
 /**
  * Fetch an HTML page and return all unique GPX entries found in the raw HTML
- * source (covers `<a href>` attributes, plain-text links, and inline JS vars).
+ * source, plus segment info (title, distance, etc.) when available.
  */
-export async function extractGpxLinks(pageUrl: string): Promise<IGpxLink[]> {
+export async function extractGpxLinks(pageUrl: string): Promise<ISubpageResult> {
   const response = await http.get<string>(pageUrl);
 
   const $ = cheerio.load(response.data);
@@ -50,7 +85,10 @@ export async function extractGpxLinks(pageUrl: string): Promise<IGpxLink[]> {
     }
   }
 
-  return links;
+  return {
+    links,
+    info: extractSegmentInfo($),
+  };
 }
 
 // ─── GPX download + store ─────────────────────────────────────────────────────
@@ -61,7 +99,7 @@ export async function extractGpxLinks(pageUrl: string): Promise<IGpxLink[]> {
 export async function downloadGpxFile(trail: string,
   filename: string,
   adapter: IStorageAdapter,
-): Promise<void> {
+): Promise<Buffer> {
   const sourceUrl = `${GPX_BASE_URL}/${filename}`;
   console.log(`  Downloading ${sourceUrl}`);
 
@@ -69,6 +107,8 @@ export async function downloadGpxFile(trail: string,
     responseType: 'arraybuffer',
   });
 
-  await adapter.writeGpx(trail, filename, Buffer.from(response.data),
-  );
+  const data = Buffer.from(response.data);
+  await adapter.writeGpx(trail, filename, data);
+
+  return data;
 }
