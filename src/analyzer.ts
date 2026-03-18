@@ -16,6 +16,17 @@ interface ITrackPoint {
   ele: number;
 }
 
+interface ITrackStats {
+  distance_m: number;
+  elevation_gain_m: number;
+  elevation_loss_m: number;
+}
+
+interface IResolvedGroup {
+  name: string;
+  trackIndex: number;
+}
+
 // ─── Haversine distance ───────────────────────────────────────────────────────
 
 type CheerioRoot = ReturnType<typeof cheerio.load>;
@@ -30,12 +41,14 @@ function toRad(deg: number): number {
  * Calculate the great-circle distance between two points in metres.
  */
 export function haversineDistance(
-  lat1: number, lon1: number,
-  lat2: number, lon2: number,
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
 ): number {
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
-  const a =    Math.sin(dLat / 2) ** 2 +
+  const a = Math.sin(dLat / 2) ** 2 +
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
 
   return EARTH_RADIUS_M * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
@@ -116,9 +129,7 @@ function computeStats(
   trackPoints: ITrackPoint[],
   fromIndex: number,
   toIndex: number,
-): { distance_m: number;
-  elevation_gain_m: number;
-  elevation_loss_m: number } {
+): ITrackStats {
   let distance = 0;
   let gain = 0;
   let loss = 0;
@@ -175,8 +186,7 @@ export function analyzeGpx(gpxData: Buffer): ISection[] {
   }
 
   // Resolve each group to its closest track point index
-  const resolved: { name: string;
-    trackIndex: number }[] = [];
+  const resolved: IResolvedGroup[] = [];
 
   for (const [
     name,

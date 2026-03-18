@@ -97,6 +97,7 @@ Tests are in `test/` and use Jest + ts-jest. No live network calls or GCP creden
 | `test/scraper.test.ts` | `extractGpxLinks`, `downloadGpxFile` |
 | `test/storage.test.ts` | `GcsStorageAdapter`, `LocalStorageAdapter`, `createStorageAdapter` |
 | `test/index.test.ts` | Full `syncGpxFiles` handler integration (end-to-end with mocks) |
+| `test/analyzer.test.ts` | `analyzeGpx`, `haversineDistance`, section computation |
 | `test/helpers.ts` | Shared test utilities (`makeTempDir`, `mockReq`, `mockRes`, `htmlWithLinks`) |
 
 ```bash
@@ -110,17 +111,20 @@ npm run test:coverage
 
 ```
 src/
+  analyzer.ts     GPX section analysis (stamp grouping, haversine, elevation stats)
   config.ts       Scrape targets, filename regex, concurrency limits
   index.ts        Cloud Run Function entry point (syncGpxFiles)
   scraper.ts      HTTP scraping logic (fetchSubpageUrls, extractGpxLinks, downloadGpxFile)
   storage.ts      Storage abstraction (GcsStorageAdapter, LocalStorageAdapter)
-  types.ts        Shared TypeScript types
+  types.ts        Shared TypeScript types (ISection, ISegmentMeta, etc.)
   utils.ts        Shared utilities (toMessage)
 test/
+  analyzer.test.ts
+  config.test.ts
   helpers.ts
+  index.test.ts
   scraper.test.ts
   storage.test.ts
-  index.test.ts
 deploy.sh         Manual deployment script
 .env.example      Environment variable template
 ```
