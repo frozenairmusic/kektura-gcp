@@ -14,7 +14,7 @@ import type { IStorageAdapter } from '../src/storage';
 import type { Metadata } from '../src/types';
 import { LocalStorageAdapter } from '../src/storage';
 import { extractGpxLinks, downloadGpxFile, http } from '../src/scraper';
-import { htmlWithLinks, htmlWithPlainText, makeTempDir } from './helpers';
+import { htmlWithLinks, htmlWithPlainText, htmlWithSegmentPage, makeTempDir } from './helpers';
 
 const axiosMock = new MockAdapter(http);
 
@@ -34,7 +34,9 @@ describe('extractGpxLinks', () => {
       'https://turistaterkepek.hu/gpx/okt_02_20251016.gpx',
     ),
     );
-    const links = await extractGpxLinks(PAGE_URL);
+    const {
+      links,
+    } = await extractGpxLinks(PAGE_URL);
     expect(links).toHaveLength(2);
     expect(links[0]).toEqual({
       trail: 'okt',
@@ -54,7 +56,9 @@ describe('extractGpxLinks', () => {
     axiosMock.onGet(PAGE_URL).reply(200,
       htmlWithPlainText('Download: rpddk_03_20241217.gpx available here.'),
     );
-    const links = await extractGpxLinks(PAGE_URL);
+    const {
+      links,
+    } = await extractGpxLinks(PAGE_URL);
     expect(links).toHaveLength(1);
     expect(links[0]).toEqual({
       trail: 'rpddk',
@@ -70,14 +74,18 @@ describe('extractGpxLinks', () => {
       '</body></html>';
     axiosMock.onGet(PAGE_URL).reply(200, html,
     );
-    const links = await extractGpxLinks(PAGE_URL);
+    const {
+      links,
+    } = await extractGpxLinks(PAGE_URL);
     expect(links).toHaveLength(1);
   });
 
   test('returns an empty array when no GPX links are present', async () => {
     axiosMock.onGet(PAGE_URL).reply(200, '<html><body><p>No files here.</p></body></html>',
     );
-    const links = await extractGpxLinks(PAGE_URL);
+    const {
+      links,
+    } = await extractGpxLinks(PAGE_URL);
     expect(links).toEqual([]);
   });
 
@@ -87,7 +95,9 @@ describe('extractGpxLinks', () => {
       'rpddk_07_20251120.gpx',
     ),
     );
-    const links  = await extractGpxLinks(PAGE_URL);
+    const {
+      links,
+    } = await extractGpxLinks(PAGE_URL);
     const trails = links.map(l => l.trail).sort();
     expect(trails).toEqual([
       'ak',
@@ -103,14 +113,18 @@ describe('extractGpxLinks', () => {
       'https://example.com/other.zip',
     ),
     );
-    const links = await extractGpxLinks(PAGE_URL);
+    const {
+      links,
+    } = await extractGpxLinks(PAGE_URL);
     expect(links).toEqual([]);
   });
 
   test('normalises filenames to lower-case (regex is case-insensitive)', async () => {
     axiosMock.onGet(PAGE_URL).reply(200, htmlWithLinks('OKT_01_20251107.GPX'),
     );
-    const links = await extractGpxLinks(PAGE_URL);
+    const {
+      links,
+    } = await extractGpxLinks(PAGE_URL);
     expect(links).toHaveLength(1);
     expect(links[0]).toEqual({
       trail: 'okt',
@@ -123,6 +137,38 @@ describe('extractGpxLinks', () => {
   test('throws when the HTTP request fails', async () => {
     axiosMock.onGet(PAGE_URL).networkError();
     await expect(extractGpxLinks(PAGE_URL)).rejects.toThrow();
+  });
+
+  test('extracts segment info from a kektura.hu subpage', async () => {
+    axiosMock.onGet(PAGE_URL).reply(200, htmlWithSegmentPage({
+      code: 'OKT-01',
+      title: 'Írott-kő - Sárvár',
+      distance: '72,5 km',
+      elevation: '570 m / 1290 m',
+      walkingTime: '18 óra 50 perc',
+      stampCount: '9',
+      gpxLinks: ['okt_01_20251107.gpx'],
+    }));
+    const {
+      links, info,
+    } = await extractGpxLinks(PAGE_URL);
+    expect(links).toHaveLength(1);
+    expect(info).toEqual({
+      code: 'OKT-01',
+      title: 'Írott-kő - Sárvár',
+      distance: '72,5 km',
+      elevation: '570 m / 1290 m',
+      walking_time: '18 óra 50 perc',
+      stamp_count: '9',
+    });
+  });
+
+  test('returns undefined info when page has no segment structure', async () => {
+    axiosMock.onGet(PAGE_URL).reply(200, htmlWithLinks('okt_01_20251107.gpx'));
+    const {
+      info,
+    } = await extractGpxLinks(PAGE_URL);
+    expect(info).toBeUndefined();
   });
 });
 

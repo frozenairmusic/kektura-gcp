@@ -116,5 +116,5 @@ GCS_BUCKET_NAME=<YOUR_BUCKET_NAME> ./deploy.sh
 - **Framework** — `@google-cloud/functions-framework` (2nd Gen)
 - **Storage** — `@google-cloud/storage`
 - **Scraping** — `axios` + `cheerio`
-- **Tests** — Jest + ts-jest + axios-mock-adapter (61 tests, 0 live network calls)
+- **Tests** — Jest + ts-jest + axios-mock-adapter (63 tests, 0 live network calls)
 - **CI/CD** — GitHub Actions with Workload Identity Federation (no SA keys stored)

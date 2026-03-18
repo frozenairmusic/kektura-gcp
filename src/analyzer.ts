@@ -143,8 +143,11 @@ function computeStats(
     );
     const eleDiff = trackPoints[i + 1].ele - trackPoints[i].ele;
 
-    if (eleDiff > 0) gain += eleDiff;
-    else loss += Math.abs(eleDiff);
+    if (eleDiff > 0) {
+      gain += eleDiff;
+    } else {
+      loss += Math.abs(eleDiff);
+    }
   }
 
   return {
@@ -181,8 +184,11 @@ export function analyzeGpx(gpxData: Buffer): ISection[] {
   for (const wp of waypoints) {
     const existing = groups.get(wp.name);
 
-    if (existing) existing.push(wp);
-    else groups.set(wp.name, [wp]);
+    if (existing) {
+      existing.push(wp);
+    } else {
+      groups.set(wp.name, [wp]);
+    }
   }
 
   // Resolve each group to its closest track point index
