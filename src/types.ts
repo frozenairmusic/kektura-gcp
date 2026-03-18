@@ -1,11 +1,27 @@
 // ─── Domain types ─────────────────────────────────────────────────────────────
 
+/** A section between two consecutive stamp-point groups within a segment. */
+export interface ISection {
+  /** Name of the starting stamp-point group (city / location). */
+  from: string;
+  /** Name of the ending stamp-point group (city / location). */
+  to: string;
+  /** Trail distance in kilometres (rounded to 2 decimal places). */
+  distance_km: number;
+  /** Cumulative elevation gain in metres (rounded to integer). */
+  elevation_gain_m: number;
+  /** Cumulative elevation loss in metres (rounded to integer). */
+  elevation_loss_m: number;
+}
+
 /** Metadata stored for a single trail segment. */
 export interface ISegmentMeta {
   /** Date of the most recently downloaded GPX file in `YYYYMMDD` format. */
   last_updated: string;
   /** Filename of the most recently downloaded GPX file. */
   filename: string;
+  /** Sections between stamp-point groups, computed from the GPX track. */
+  sections?: ISection[];
 }
 
 /** All segments for one trail, keyed by zero-padded segment number string. */

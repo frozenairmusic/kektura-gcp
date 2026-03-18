@@ -16,6 +16,8 @@ export interface IStorageAdapter {
   writeMetadata(metadata: Metadata): Promise<void>;
   /** Store a GPX file at path gpx/<trail>/<filename>. */
   writeGpx(trail: string, filename: string, data: Buffer): Promise<void>;
+  /** Read a GPX file from gpx/<trail>/<filename>. */
+  readGpx(trail: string, filename: string): Promise<Buffer>;
   /** Probe write access — throws if the storage backend is not writable. */
   checkWritable(): Promise<void>;
 }
@@ -82,6 +84,13 @@ export class GcsStorageAdapter implements IStorageAdapter {
       });
     console.log(`  Stored → gs://${this.bucketName}/${destPath}`);
   }
+
+  async readGpx(trail: string, filename: string): Promise<Buffer> {
+    const destPath = `gpx/${trail}/${filename}`;
+    const [contents] = await this.bucket.file(destPath).download();
+
+    return contents;
+  }
 }
 
 // ─── Local filesystem adapter ─────────────────────────────────────────────────
@@ -130,6 +139,12 @@ export class LocalStorageAdapter implements IStorageAdapter {
     const filePath = path.join(dir, filename);
     fs.writeFileSync(filePath, data);
     console.log(`  Stored → ${filePath}`);
+  }
+
+  async readGpx(trail: string, filename: string): Promise<Buffer> {
+    const filePath = path.join(this.outputDir, 'gpx', trail, filename);
+
+    return fs.readFileSync(filePath);
   }
 }
 

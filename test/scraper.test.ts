@@ -143,6 +143,7 @@ describe('downloadGpxFile', () => {
       readMetadata: jest.fn(),
       writeMetadata: jest.fn<Promise<void>, [Metadata]>().mockResolvedValue(undefined),
       writeGpx: jest.fn<Promise<void>, [string, string, Buffer]>().mockResolvedValue(undefined),
+      readGpx: jest.fn<Promise<Buffer>, [string, string]>().mockResolvedValue(Buffer.from('')),
     };
   });
 

@@ -2,6 +2,7 @@ import * as ff from '@google-cloud/functions-framework';
 import { createStorageAdapter } from './storage';
 import { SCRAPE_TARGETS, SUBPAGE_CONCURRENCY, DOWNLOAD_CONCURRENCY } from './config';
 import { extractGpxLinks, downloadGpxFile } from './scraper';
+import { analyzeGpx } from './analyzer';
 import { toMessage } from './utils';
 import type { ISegmentMeta, Metadata, IScraperResults, IGpxLink } from './types';
 
@@ -131,11 +132,13 @@ export async function syncGpxFiles(_req: ff.Request, res: ff.Response): Promise<
         const label = isNew ? 'NEW' : 'UPDATED';
         console.log(`  [${label}] ${filename}`);
         try {
-          await downloadGpxFile(trail, filename, adapter);
+          const gpxBuffer = await downloadGpxFile(trail, filename, adapter);
           if (!metadata[trail]) metadata[trail] = {};
+          const sections = analyzeGpx(gpxBuffer);
           metadata[trail][segment] = {
             last_updated: date,
             filename,
+            sections,
           };
           (isNew ? results.added : results.updated).push(`${trail}_${segment}`);
         } catch (err: unknown) {
@@ -150,8 +153,29 @@ export async function syncGpxFiles(_req: ff.Request, res: ff.Response): Promise<
     }
   }));
 
+  // Backfill sections for segments downloaded before analysis was added
+  let backfilled = false;
+
+  for (const trailKey of Object.keys(metadata)) {
+    if (trailKey === 'last_updated') continue;
+    const trailMeta = metadata[trailKey];
+
+    for (const seg of Object.keys(trailMeta)) {
+      if (!trailMeta[seg].sections) {
+        try {
+          const gpxBuffer = await adapter.readGpx(trailKey, trailMeta[seg].filename);
+          trailMeta[seg].sections = analyzeGpx(gpxBuffer);
+          backfilled = true;
+          console.log(`  Backfilled sections for ${trailKey}_${seg}`);
+        } catch (err: unknown) {
+          console.error(`  Failed to backfill sections for ${trailKey}_${seg}: ${toMessage(err)}`);
+        }
+      }
+    }
+  }
+
   // Persist metadata only when something changed
-  if (results.added.length > 0 || results.updated.length > 0) {
+  if (results.added.length > 0 || results.updated.length > 0 || backfilled) {
     try {
       // Stamp the file-level update date so consumers know when it was last touched
       (metadata as Record<string, unknown>).last_updated = new Date().toISOString().slice(0, 10); // YYYY-MM-DD

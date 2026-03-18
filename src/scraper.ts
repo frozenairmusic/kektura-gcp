@@ -61,7 +61,7 @@ export async function extractGpxLinks(pageUrl: string): Promise<IGpxLink[]> {
 export async function downloadGpxFile(trail: string,
   filename: string,
   adapter: IStorageAdapter,
-): Promise<void> {
+): Promise<Buffer> {
   const sourceUrl = `${GPX_BASE_URL}/${filename}`;
   console.log(`  Downloading ${sourceUrl}`);
 
@@ -69,6 +69,8 @@ export async function downloadGpxFile(trail: string,
     responseType: 'arraybuffer',
   });
 
-  await adapter.writeGpx(trail, filename, Buffer.from(response.data),
-  );
+  const data = Buffer.from(response.data);
+  await adapter.writeGpx(trail, filename, data);
+
+  return data;
 }
