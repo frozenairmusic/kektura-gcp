@@ -1,5 +1,5 @@
 import { SUBPAGE_CONCURRENCY, DOWNLOAD_CONCURRENCY } from './config';
-import { extractGpxLinks, downloadGpxFile } from './scraper';
+import { extractGpxLinks, downloadGpxFile, scrapeSegmentUrls } from './scraper';
 import { analyzeGpx } from './analyzer';
 import { toMessage } from './utils';
 import type { IStorageAdapter } from './storage';
@@ -21,8 +21,27 @@ async function scrapeTrailLinks(
   const links: IGpxLink[] = [];
   const segmentInfoMap = new Map<string, ISegmentInfo>();
 
-  for (let i = 0; i < target.subpageUrls.length; i += SUBPAGE_CONCURRENCY) {
-    const chunk = target.subpageUrls.slice(i, i + SUBPAGE_CONCURRENCY);
+  let subpageUrls: string[];
+  try {
+    subpageUrls = await scrapeSegmentUrls(target.trail);
+  } catch (err: unknown) {
+    const message = toMessage(err);
+    console.error(`  Failed to fetch listing page for '${target.trail}': ${message}`);
+    results.errors.push({
+      source: `https://www.kektura.hu/${target.trail}-szakaszok/`,
+      error: message,
+    });
+
+    return {
+      links,
+      segmentInfoMap,
+    };
+  }
+
+  console.log(`  Discovered ${subpageUrls.length} segment page(s).`);
+
+  for (let i = 0; i < subpageUrls.length; i += SUBPAGE_CONCURRENCY) {
+    const chunk = subpageUrls.slice(i, i + SUBPAGE_CONCURRENCY);
     const settled = await Promise.allSettled(chunk.map(url => extractGpxLinks(url)));
 
     settled.forEach((result, index) => {
@@ -95,8 +114,9 @@ async function downloadSegments(
             code: info.code,
             title: info.title,
             distance: info.distance,
-            elevation: info.elevation,
-            walking_time: info.walking_time,
+            elevation_gain: info.elevation_gain,
+            elevation_loss: info.elevation_loss,
+            duration: info.duration,
             stamp_count: info.stamp_count,
           }),
           sections,
@@ -127,7 +147,7 @@ export async function processTrail(
   adapter: IStorageAdapter,
   results: IScraperResults,
 ): Promise<boolean> {
-  console.log(`\nScraping trail '${target.trail}' (${target.subpageUrls.length} segment(s))`);
+  console.log(`\nScraping trail '${target.trail}'`);
 
   const {
     links, segmentInfoMap,
@@ -176,8 +196,9 @@ export async function processTrail(
       existing.code = info.code;
       existing.title = info.title;
       existing.distance = info.distance;
-      existing.elevation = info.elevation;
-      existing.walking_time = info.walking_time;
+      existing.elevation_gain = info.elevation_gain;
+      existing.elevation_loss = info.elevation_loss;
+      existing.duration = info.duration;
       existing.stamp_count = info.stamp_count;
       backfilled = true;
     }

@@ -16,7 +16,9 @@ import { Storage } from '@google-cloud/storage';
 import type * as ff from '@google-cloud/functions-framework';
 import { syncGpxFiles } from '../src/index';
 import { http } from '../src/scraper';
-import { htmlWithLinks, makeTempDir, mockReq, mockRes } from './helpers';
+import {
+  htmlWithLinks, htmlWithListingPage, makeTempDir, mockReq, mockRes,
+} from './helpers';
 
 // ─── GCS mock chain setup ─────────────────────────────────────────────────────
 const MockedStorage = Storage as jest.MockedClass<typeof Storage>;
@@ -88,12 +90,15 @@ describe('syncGpxFiles handler', () => {
 
   function mockTrailSubpages(trail: string, filenames: string[],
   ): void {
-    filenames.forEach((filename, i,
-    ) => {
-      const n = String(i + 1).padStart(2, '0',
-      );
-      axiosMock.onGet(`https://www.kektura.hu/${trail}-szakasz/${trail}-${n}`).reply(200, htmlWithLinks(filename),
-      );
+    const segmentUrls = filenames.map((_, i) => {
+      const n = String(i + 1).padStart(2, '0');
+
+      return `https://www.kektura.hu/${trail}-szakasz/${trail}-${n}`;
+    });
+    axiosMock.onGet(`https://www.kektura.hu/${trail}-szakaszok/`).reply(200, htmlWithListingPage(segmentUrls));
+    filenames.forEach((filename, i) => {
+      const n = String(i + 1).padStart(2, '0');
+      axiosMock.onGet(`https://www.kektura.hu/${trail}-szakasz/${trail}-${n}`).reply(200, htmlWithLinks(filename));
     });
   }
 
@@ -236,6 +241,9 @@ describe('syncGpxFiles handler', () => {
     fs.writeFileSync(path.join(tmpDir, 'metadata.json',
     ), '{}',
     );
+    // Mock listing pages: okt has one segment, ak has one segment
+    axiosMock.onGet('https://www.kektura.hu/okt-szakaszok/').reply(200, htmlWithListingPage(['https://www.kektura.hu/okt-szakasz/okt-01']));
+    axiosMock.onGet('https://www.kektura.hu/ak-szakaszok/').reply(200, htmlWithListingPage(['https://www.kektura.hu/ak-szakasz/ak-01']));
     // First OKT subpage fails; ak-01 has a GPX link; everything else returns empty HTML
     axiosMock.onGet('https://www.kektura.hu/okt-szakasz/okt-01').networkError();
     axiosMock.onGet('https://www.kektura.hu/ak-szakasz/ak-01').reply(200, htmlWithLinks('ak_01_20231109.gpx'),
@@ -259,6 +267,11 @@ describe('syncGpxFiles handler', () => {
     fs.writeFileSync(path.join(tmpDir, 'metadata.json',
     ), '{}',
     );
+    // Mock listing page: okt has two segments
+    axiosMock.onGet('https://www.kektura.hu/okt-szakaszok/').reply(200, htmlWithListingPage([
+      'https://www.kektura.hu/okt-szakasz/okt-01',
+      'https://www.kektura.hu/okt-szakasz/okt-02',
+    ]));
     // Two OKT subpages return GPX links; all other kektura pages return empty HTML
     axiosMock.onGet('https://www.kektura.hu/okt-szakasz/okt-01').reply(200, htmlWithLinks('okt_01_20251107.gpx'),
     );

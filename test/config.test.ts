@@ -13,12 +13,9 @@ describe('SCRAPE_TARGETS', () => {
     ]);
   });
 
-  test('each target has non-empty subpageUrls with valid https URLs', () => {
+  test('each target has a valid trail identifier', () => {
     for (const target of SCRAPE_TARGETS) {
-      expect(target.subpageUrls.length).toBeGreaterThan(0);
-      for (const url of target.subpageUrls) {
-        expect(url).toMatch(/^https:\/\/www\.kektura\.hu\//);
-      }
+      expect(target.trail).toMatch(/^[a-z]+$/);
     }
   });
 });

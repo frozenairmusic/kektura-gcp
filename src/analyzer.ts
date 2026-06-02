@@ -17,9 +17,9 @@ interface ITrackPoint {
 }
 
 interface ITrackStats {
-  distance_m: number;
-  elevation_gain_m: number;
-  elevation_loss_m: number;
+  distance: number;
+  elevation_gain: number;
+  elevation_loss: number;
 }
 
 interface IResolvedGroup {
@@ -151,9 +151,9 @@ function computeStats(
   }
 
   return {
-    distance_m: distance,
-    elevation_gain_m: gain,
-    elevation_loss_m: loss,
+    distance,
+    elevation_gain: gain,
+    elevation_loss: loss,
   };
 }
 
@@ -221,9 +221,9 @@ export function analyzeGpx(gpxData: Buffer): ISection[] {
     sections.push({
       from: resolved[i].name,
       to: resolved[i + 1].name,
-      distance_km: Math.round(stats.distance_m / 10) / 100,
-      elevation_gain_m: Math.round(stats.elevation_gain_m),
-      elevation_loss_m: Math.round(stats.elevation_loss_m),
+      distance: Math.round(stats.distance / 10) / 100,
+      elevation_gain: Math.round(stats.elevation_gain),
+      elevation_loss: Math.round(stats.elevation_loss),
     });
   }
 

@@ -87,9 +87,9 @@ describe('analyzeGpx', () => {
     expect(sections).toHaveLength(1);
     expect(sections[0].from).toBe('Start');
     expect(sections[0].to).toBe('End');
-    expect(sections[0].distance_km).toBeGreaterThan(0);
-    expect(sections[0].elevation_gain_m).toBe(100); // 100 → 200
-    expect(sections[0].elevation_loss_m).toBe(50);  // 200 → 150
+    expect(sections[0].distance).toBeGreaterThan(0);
+    expect(sections[0].elevation_gain).toBe(100); // 100 → 200
+    expect(sections[0].elevation_loss).toBe(50);  // 200 → 150
   });
 
   test('groups waypoints by name and orders sections by track position', () => {
@@ -141,11 +141,11 @@ describe('analyzeGpx', () => {
     // Near-start resolves nearest to ~index 1-2, but after sorting it's first → pinned to 0
     // so section covers from track start (ele 100) up
     expect(sections[0].from).toBe('Near-start');
-    expect(sections[0].elevation_gain_m).toBeGreaterThanOrEqual(100);
+    expect(sections[0].elevation_gain).toBeGreaterThanOrEqual(100);
     // Near-end resolves nearest to ~index 2-3, but after sorting it's last → pinned to 4
     // so section covers up to track end (ele 300)
     expect(sections[1].to).toBe('Near-end');
-    expect(sections[1].elevation_gain_m).toBeGreaterThanOrEqual(50);
+    expect(sections[1].elevation_gain).toBeGreaterThanOrEqual(50);
   });
 
   test('computes elevation gain and loss correctly across three groups', () => {
@@ -166,12 +166,12 @@ describe('analyzeGpx', () => {
     expect(sections).toHaveLength(2);
 
     // Start → Peak: 100 → 200 → 300 = gain 200, loss 0
-    expect(sections[0].elevation_gain_m).toBe(200);
-    expect(sections[0].elevation_loss_m).toBe(0);
+    expect(sections[0].elevation_gain).toBe(200);
+    expect(sections[0].elevation_loss).toBe(0);
 
     // Peak → End: 300 → 250 → 200 = gain 0, loss 100
-    expect(sections[1].elevation_gain_m).toBe(0);
-    expect(sections[1].elevation_loss_m).toBe(100);
+    expect(sections[1].elevation_gain).toBe(0);
+    expect(sections[1].elevation_loss).toBe(100);
   });
 
   test('distance_km is rounded to 2 decimal places', () => {
@@ -186,7 +186,7 @@ describe('analyzeGpx', () => {
 
     const sections = analyzeGpx(gpx);
     expect(sections).toHaveLength(1);
-    const km = sections[0].distance_km;
+    const km = sections[0].distance;
     expect(km).toBe(Math.round(km * 100) / 100);
   });
 
@@ -201,8 +201,8 @@ describe('analyzeGpx', () => {
 
     const sections = analyzeGpx(gpx);
     expect(sections).toHaveLength(1);
-    expect(Number.isInteger(sections[0].elevation_gain_m)).toBe(true);
-    expect(Number.isInteger(sections[0].elevation_loss_m)).toBe(true);
+    expect(Number.isInteger(sections[0].elevation_gain)).toBe(true);
+    expect(Number.isInteger(sections[0].elevation_loss)).toBe(true);
   });
 
   test('works with real-world GPX namespace', () => {

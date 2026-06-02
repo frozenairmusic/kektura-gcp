@@ -4,6 +4,12 @@ import * as path from 'path';
 
 // ─── HTML builders ────────────────────────────────────────────────────────────
 
+export function htmlWithListingPage(urls: string[]): string {
+  const rows = urls.map(u => `<tr data-url="${u}"><td>szakasz</td></tr>`).join('\n');
+
+  return `<html><body><table class="szakaszok-page">\n${rows}\n</table></body></html>`;
+}
+
 export function htmlWithLinks(...hrefs: string[]): string {
   const tags = hrefs.map(h => `<a href="${h}">link</a>`).join('\n');
 

@@ -13,8 +13,10 @@ import MockAdapter from 'axios-mock-adapter';
 import type { IStorageAdapter } from '../src/storage';
 import type { Metadata } from '../src/types';
 import { LocalStorageAdapter } from '../src/storage';
-import { extractGpxLinks, downloadGpxFile, http } from '../src/scraper';
-import { htmlWithLinks, htmlWithPlainText, htmlWithSegmentPage, makeTempDir } from './helpers';
+import { extractGpxLinks, downloadGpxFile, scrapeSegmentUrls, http } from '../src/scraper';
+import {
+  htmlWithLinks, htmlWithListingPage, htmlWithPlainText, htmlWithSegmentPage, makeTempDir,
+} from './helpers';
 
 const axiosMock = new MockAdapter(http);
 
@@ -156,10 +158,11 @@ describe('extractGpxLinks', () => {
     expect(info).toEqual({
       code: 'OKT-01',
       title: 'Írott-kő - Sárvár',
-      distance: '72,5 km',
-      elevation: '570 m / 1290 m',
-      walking_time: '18 óra 50 perc',
-      stamp_count: '9',
+      distance: 72.5,
+      elevation_gain: 570,
+      elevation_loss: 1290,
+      duration: 1130,
+      stamp_count: 9,
     });
   });
 
@@ -169,6 +172,41 @@ describe('extractGpxLinks', () => {
       info,
     } = await extractGpxLinks(PAGE_URL);
     expect(info).toBeUndefined();
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// scrapeSegmentUrls
+// ═════════════════════════════════════════════════════════════════════════════
+describe('scrapeSegmentUrls', () => {
+  test('returns URLs from data-url attributes on table rows', async () => {
+    axiosMock.onGet('https://www.kektura.hu/okt-szakaszok/').reply(200, htmlWithListingPage([
+      'https://www.kektura.hu/okt-szakasz/okt-01',
+      'https://www.kektura.hu/okt-szakasz/okt-02',
+    ]));
+    const urls = await scrapeSegmentUrls('okt');
+    expect(urls).toEqual([
+      'https://www.kektura.hu/okt-szakasz/okt-01',
+      'https://www.kektura.hu/okt-szakasz/okt-02',
+    ]);
+  });
+
+  test('returns empty array when no data-url elements are found', async () => {
+    axiosMock.onGet('https://www.kektura.hu/ak-szakaszok/').reply(200, '<html><body></body></html>');
+    const urls = await scrapeSegmentUrls('ak');
+    expect(urls).toEqual([]);
+  });
+
+  test('resolves relative URLs to absolute', async () => {
+    const html = '<html><body><table><tr data-url="/rpddk-szakasz/rpddk-01"><td></td></tr></table></body></html>';
+    axiosMock.onGet('https://www.kektura.hu/rpddk-szakaszok/').reply(200, html);
+    const urls = await scrapeSegmentUrls('rpddk');
+    expect(urls).toEqual(['https://www.kektura.hu/rpddk-szakasz/rpddk-01']);
+  });
+
+  test('throws when the HTTP request fails', async () => {
+    axiosMock.onGet('https://www.kektura.hu/okt-szakaszok/').networkError();
+    await expect(scrapeSegmentUrls('okt')).rejects.toThrow();
   });
 });
 

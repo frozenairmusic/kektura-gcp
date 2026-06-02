@@ -7,11 +7,11 @@ export interface ISection {
   /** Name of the ending stamp-point group (city / location). */
   to: string;
   /** Trail distance in kilometres (rounded to 2 decimal places). */
-  distance_km: number;
+  distance: number;
   /** Cumulative elevation gain in metres (rounded to integer). */
-  elevation_gain_m: number;
+  elevation_gain: number;
   /** Cumulative elevation loss in metres (rounded to integer). */
-  elevation_loss_m: number;
+  elevation_loss: number;
 }
 
 /** Metadata stored for a single trail segment. */
@@ -24,14 +24,16 @@ export interface ISegmentMeta {
   code?: string;
   /** Segment title (from–to), e.g. `"Írott-kő - Sárvár"`. */
   title?: string;
-  /** Total segment distance as shown on kektura.hu, e.g. `"72,5 km"`. */
-  distance?: string;
-  /** Elevation gain / loss as shown on kektura.hu, e.g. `"570 m / 1290 m"`. */
-  elevation?: string;
-  /** Walking time as shown on kektura.hu, e.g. `"18 óra 50 perc"`. */
-  walking_time?: string;
+  /** Total segment distance in kilometres. */
+  distance?: number;
+  /** Elevation gain in metres. */
+  elevation_gain?: number;
+  /** Elevation loss in metres. */
+  elevation_loss?: number;
+  /** Walking duration in minutes. */
+  duration?: number;
   /** Number of stamp locations in the segment. */
-  stamp_count?: string;
+  stamp_count?: number;
   /** Sections between stamp-point groups, computed from the GPX track. */
   sections?: ISection[];
 }
@@ -63,14 +65,16 @@ export interface ISegmentInfo {
   code: string;
   /** Segment title (from–to), e.g. `"Írott-kő - Sárvár"`. */
   title: string;
-  /** Total segment distance, e.g. `"72,5 km"`. */
-  distance: string;
-  /** Elevation gain / loss, e.g. `"570 m / 1290 m"`. */
-  elevation: string;
-  /** Walking time, e.g. `"18 óra 50 perc"`. */
-  walking_time: string;
-  /** Number of stamp locations, e.g. `"9"`. */
-  stamp_count: string;
+  /** Total segment distance in kilometres. */
+  distance?: number;
+  /** Cumulative elevation gain in metres. */
+  elevation_gain?: number;
+  /** Cumulative elevation loss in metres. */
+  elevation_loss?: number;
+  /** Walking duration in minutes. */
+  duration: number;
+  /** Number of stamp locations. */
+  stamp_count?: number;
 }
 
 /** Result of scraping a single trail subpage. */
@@ -93,11 +97,6 @@ export interface IScrapeResult {
 export interface IScrapeTarget {
   /** Trail identifier used as the top-level key in `metadata.json`, e.g. `"okt"`. */
   trail: string;
-  /**
-   * Ordered list of subpage URLs to fetch and scan for GPX links.
-   * Generated from {@link TRAIL_SEGMENT_COUNTS} in `config.ts`.
-   */
-  subpageUrls: string[];
 }
 
 /** Describes a single error collected during a scrape or download run. */

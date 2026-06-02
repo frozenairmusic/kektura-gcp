@@ -8,61 +8,21 @@ import type { IScrapeTarget } from './types';
  */
 export const GPX_BASE_URL = process.env.GPX_BASE_URL ?? 'https://turistaterkepek.hu/kekturahu/gpx/nagyszakasz';
 
-// ─── Trail segment counts ─────────────────────────────────────────────────────
-
-/**
- * Known number of segments for each trail.
- * Update these values if new segments are added to a trail.
- */
-export const TRAIL_SEGMENT_COUNTS = {
-  okt: 27,
-  ak: 13,
-  rpddk: 11,
-} as const;
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/**
- * Generates the ordered list of subpage URLs for a given trail.
- *
- * URL pattern: `https://www.kektura.hu/<trail>-szakasz/<trail>-<nn>`
- * where `<nn>` is a zero-padded segment number starting at `01`.
- */
-function segmentUrls(trail: string, count: number,
-): string[] {
-  return Array.from(
-    {
-      length: count,
-    },
-    (_, i) => {
-      const n = `${i + 1}`.padStart(2, '0');
-
-      return `https://www.kektura.hu/${trail}-szakasz/${trail}-${n}`;
-    });
-}
-
 // ─── Scrape targets ───────────────────────────────────────────────────────────
 
 /**
- * Ordered list of trail segment pages to scrape on each function invocation.
- * Subpage URLs are pre-computed from {@link TRAIL_SEGMENT_COUNTS} — no
- * listing-page fetch is required at runtime.
+ * Ordered list of trails to scrape on each function invocation.
+ * Segment URLs are discovered dynamically from each trail's listing page.
  */
 export const SCRAPE_TARGETS: IScrapeTarget[] = [
   {
     trail: 'okt',
-    subpageUrls: segmentUrls('okt', TRAIL_SEGMENT_COUNTS.okt,
-    ),
   },
   {
     trail: 'ak',
-    subpageUrls: segmentUrls('ak', TRAIL_SEGMENT_COUNTS.ak,
-    ),
   },
   {
     trail: 'rpddk',
-    subpageUrls: segmentUrls('rpddk', TRAIL_SEGMENT_COUNTS.rpddk,
-    ),
   },
 ];
 
