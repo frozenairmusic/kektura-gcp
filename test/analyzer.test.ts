@@ -87,6 +87,8 @@ describe('analyzeGpx', () => {
     expect(sections).toHaveLength(1);
     expect(sections[0].from).toBe('Start');
     expect(sections[0].to).toBe('End');
+    expect(sections[0].track_from).toBe(0);
+    expect(sections[0].track_to).toBe(2);
     expect(sections[0].distance).toBeGreaterThan(0);
     expect(sections[0].elevation_gain).toBe(100); // 100 → 200
     expect(sections[0].elevation_loss).toBe(50);  // 200 → 150
@@ -114,8 +116,12 @@ describe('analyzeGpx', () => {
     expect(sections).toHaveLength(2);
     expect(sections[0].from).toBe('CityA');
     expect(sections[0].to).toBe('CityB');
+    expect(sections[0].track_from).toBe(0);  // pinned to track start
+    expect(sections[0].track_to).toBe(2);
     expect(sections[1].from).toBe('CityB');
     expect(sections[1].to).toBe('CityC');
+    expect(sections[1].track_from).toBe(2);
+    expect(sections[1].track_to).toBe(4);  // pinned to track end
   });
 
   test('pins first stamp group to track start and last to track end', () => {
@@ -141,10 +147,12 @@ describe('analyzeGpx', () => {
     // Near-start resolves nearest to ~index 1-2, but after sorting it's first → pinned to 0
     // so section covers from track start (ele 100) up
     expect(sections[0].from).toBe('Near-start');
+    expect(sections[0].track_from).toBe(0);
     expect(sections[0].elevation_gain).toBeGreaterThanOrEqual(100);
     // Near-end resolves nearest to ~index 2-3, but after sorting it's last → pinned to 4
     // so section covers up to track end (ele 300)
     expect(sections[1].to).toBe('Near-end');
+    expect(sections[1].track_to).toBe(4);
     expect(sections[1].elevation_gain).toBeGreaterThanOrEqual(50);
   });
 
@@ -165,11 +173,15 @@ describe('analyzeGpx', () => {
     const sections = analyzeGpx(gpx);
     expect(sections).toHaveLength(2);
 
-    // Start → Peak: 100 → 200 → 300 = gain 200, loss 0
+    // Start → Peak: track points 0–2
+    expect(sections[0].track_from).toBe(0);
+    expect(sections[0].track_to).toBe(2);
     expect(sections[0].elevation_gain).toBe(200);
     expect(sections[0].elevation_loss).toBe(0);
 
-    // Peak → End: 300 → 250 → 200 = gain 0, loss 100
+    // Peak → End: track points 2–4
+    expect(sections[1].track_from).toBe(2);
+    expect(sections[1].track_to).toBe(4);
     expect(sections[1].elevation_gain).toBe(0);
     expect(sections[1].elevation_loss).toBe(100);
   });

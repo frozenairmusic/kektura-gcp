@@ -221,6 +221,8 @@ export function analyzeGpx(gpxData: Buffer): ISection[] {
     sections.push({
       from: resolved[i].name,
       to: resolved[i + 1].name,
+      track_from: resolved[i].trackIndex,
+      track_to: resolved[i + 1].trackIndex,
       distance: Math.round(stats.distance / 10) / 100,
       elevation_gain: Math.round(stats.elevation_gain),
       elevation_loss: Math.round(stats.elevation_loss),
