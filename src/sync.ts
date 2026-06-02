@@ -192,14 +192,24 @@ export async function processTrail(
     const existing = metadata[target.trail]?.[link.segment];
     const info = segmentInfoMap.get(link.segment);
 
-    if (existing && info && !existing.code) {
-      existing.code = info.code;
-      existing.title = info.title;
-      existing.distance = info.distance;
-      existing.elevation_gain = info.elevation_gain;
-      existing.elevation_loss = info.elevation_loss;
-      existing.duration = info.duration;
-      existing.stamp_count = info.stamp_count;
+    // Backfill when info fields are missing or still in the old string format
+    const existingRaw = existing as unknown as Record<string, unknown>;
+    const needsBackfill = existing && info && (
+      !existing.code ||
+      existing.elevation_gain === undefined ||
+      typeof existingRaw.elevation === 'string'
+    );
+
+    if (needsBackfill) {
+      existing!.code = info!.code;
+      existing!.title = info!.title;
+      existing!.distance = info!.distance;
+      existing!.elevation_gain = info!.elevation_gain;
+      existing!.elevation_loss = info!.elevation_loss;
+      existing!.duration = info!.duration;
+      existing!.stamp_count = info!.stamp_count;
+      // Remove the legacy combined elevation string if present
+      delete existingRaw.elevation;
       backfilled = true;
     }
   }
