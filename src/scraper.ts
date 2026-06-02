@@ -21,8 +21,42 @@ export const http = axios.create({
 
 // ─── Segment info extraction ──────────────────────────────────────────────────
 
+/** Parse "14 óra 40 perc" → 880 (total minutes), or 0 if not parseable. */
+function parseDuration(raw: string): number {
+  const hoursMatch = raw.match(/(\d+)\s*óra/i);
+  const minsMatch = raw.match(/(\d+)\s*perc/i);
+  const hours = hoursMatch ? parseInt(hoursMatch[1], 10) : 0;
+  const mins = minsMatch ? parseInt(minsMatch[1], 10) : 0;
+
+  return hours * 60 + mins;
+}
+
+/** Parse "58,5 km" → 58.5, or undefined if not parseable. */
+function parseDistance(raw: string): number | undefined {
+  const match = raw.match(/([\d,.]+)\s*km/i);
+  if (!match) {
+    return undefined;
+  }
+
+  return parseFloat(match[1].replace(',', '.'));
+}
+
+/** Parse "205 m / 195 m" → `{ elevation_gain: 205, elevation_loss: 195 }`. */
+function parseElevation(raw: string): { elevation_gain?: number;
+  elevation_loss?: number } {
+  const match = raw.match(/(\d+)\s*m\s*\/\s*(\d+)\s*m/i);
+  if (!match) {
+    return {};
+  }
+
+  return {
+    elevation_gain: parseInt(match[1], 10),
+    elevation_loss: parseInt(match[2], 10),
+  };
+}
+
 /**
- * Extract segment info (code, title, distance, elevation, walking time,
+ * Extract segment info (code, title, distance, elevation, duration,
  * stamp count) from a parsed kektura.hu subpage.
  */
 function extractSegmentInfo($: cheerio.CheerioAPI): ISegmentInfo | undefined {
@@ -44,13 +78,18 @@ function extractSegmentInfo($: cheerio.CheerioAPI): ISegmentInfo | undefined {
     }
   });
 
+  const {
+    elevation_gain, elevation_loss,
+  } = parseElevation(fields.get('szint + / -') ?? '');
+
   return {
     code,
     title,
-    distance: fields.get('táv') ?? '',
-    elevation: fields.get('szint + / -') ?? '',
-    walking_time: fields.get('menetidő') ?? '',
-    stamp_count: fields.get('bélyegzőhelyek') ?? '',
+    distance: parseDistance(fields.get('táv') ?? ''),
+    elevation_gain,
+    elevation_loss,
+    duration: parseDuration(fields.get('menetidő') ?? ''),
+    stamp_count: parseInt(fields.get('bélyegzőhelyek') ?? '', 10) || undefined,
   };
 }
 
@@ -111,4 +150,32 @@ export async function downloadGpxFile(trail: string,
   await adapter.writeGpx(trail, filename, data);
 
   return data;
+}
+
+// ─── Trail listing page ───────────────────────────────────────────────────────
+
+/**
+ * Fetch the trail listing page and return segment subpage URLs extracted from
+ * `data-url` attributes on table rows.
+ *
+ * Listing page URL: `https://www.kektura.hu/<trail>-szakaszok/`
+ */
+export async function scrapeSegmentUrls(trail: string): Promise<string[]> {
+  const listingUrl = `https://www.kektura.hu/${trail}-szakaszok/`;
+  const response = await http.get<string>(listingUrl);
+  const $ = cheerio.load(response.data);
+
+  const urls: string[] = [];
+  $('[data-url]').each((_, el) => {
+    const raw = ($(el).attr('data-url') ?? '').trim();
+    if (!raw) {
+      return;
+    }
+    const url = /^https?:\/\//i.test(raw) ?
+      raw :
+      `https://www.kektura.hu${raw.startsWith('/') ? raw : `/${raw}`}`;
+    urls.push(url);
+  });
+
+  return urls;
 }
