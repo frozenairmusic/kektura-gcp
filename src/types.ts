@@ -6,6 +6,16 @@ export interface ISection {
   from: string;
   /** Name of the ending stamp-point group (city / location). */
   to: string;
+  /**
+   * Index of the first `<trkpt>` (inclusive) in the GPX track for this section.
+   * The first section always starts at 0 (track start).
+   */
+  track_from: number;
+  /**
+   * Index of the last `<trkpt>` (inclusive) in the GPX track for this section.
+   * The last section always ends at `N-1` (track end).
+   */
+  track_to: number;
   /** Trail distance in kilometres (rounded to 2 decimal places). */
   distance: number;
   /** Cumulative elevation gain in metres (rounded to integer). */

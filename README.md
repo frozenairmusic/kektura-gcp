@@ -13,7 +13,7 @@ On each invocation the function:
 3. **Compares** each discovered GPX filename against `metadata.json` stored in the bucket.
 4. **Downloads** only new or updated files (date embedded in the filename is used as the version).
 5. **Writes** each GPX file to `gs://<bucket>/gpx/<trail>/<filename>`.
-6. **Analyses** each downloaded GPX — groups stamp points by location, finds nearest track points, and computes distance / elevation gain / elevation loss between consecutive stamp-point groups.
+6. **Analyses** each downloaded GPX — groups stamp points by location, finds nearest track points, and computes distance / elevation gain / elevation loss between consecutive stamp-point groups. Each section records `track_from` and `track_to` as zero-based indices into the GPX `<trkpt>` array, so Android can slice the polyline directly without re-scanning the track.
 7. **Backfills** section data for any previously downloaded segments that do not yet have it.
 8. **Updates** `metadata.json` with the new state, per-segment `sections`, and a top-level `last_updated` date.
 9. **Returns** a JSON summary of what was added, updated, unchanged, or errored.
@@ -116,5 +116,5 @@ GCS_BUCKET_NAME=<YOUR_BUCKET_NAME> ./deploy.sh
 - **Framework** — `@google-cloud/functions-framework` (2nd Gen)
 - **Storage** — `@google-cloud/storage`
 - **Scraping** — `axios` + `cheerio`
-- **Tests** — Jest + ts-jest + axios-mock-adapter (63 tests, 0 live network calls)
+- **Tests** — Jest + ts-jest + axios-mock-adapter (67 tests, 0 live network calls)
 - **CI/CD** — GitHub Actions with Workload Identity Federation (no SA keys stored)
